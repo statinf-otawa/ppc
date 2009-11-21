@@ -1,4 +1,4 @@
-# Makefile for the PowerPC architecture using GLISS
+# Makefile for the PowerPC architecture using GLISS V2
 
 # configuration
 GLISS_PREFIX=../gliss2
@@ -19,7 +19,10 @@ ifdef WITH_SIM
 GOALS+=ppc-sim
 endif
 
-CLEAN=include src disasm sim ppc.nml ppc.irg
+SUBDIRS=src sim disasm
+CLEAN=ppc.nml ppc.irg
+DISTCLEAN=include src disasm sim
+
 GFLAGS=\
 	-m mem:$(MEMORY) \
 	-m loader:$(LOADER) \
@@ -68,5 +71,12 @@ src/config.h: config.tpl
 src/disasm.c: ppc.irg
 	$(GLISS_PREFIX)/gep/gliss-disasm $< -o $@ -c
 
-clean:
+distclean: clean
+	for d in $(SUBDIRS); do test -d $$d && (cd $$d; make distclean || exit 1); done
+	rm -rf $(DISTCLEAN)
+
+clean: only-clean
+	for d in $(SUBDIRS); do test -d $$d && (cd $$d; make clean || exit 1); done
+
+only-clean:
 	rm -rf $(CLEAN)
