@@ -815,9 +815,9 @@ op bran_cond_rel ( BO : card ( 5 ), BI : card ( 5 ), BD : SIMM )
 		endif
    otawa_target = __IADDR + (BD << 2)
    otawa_used_regs = "USED_REGS"(
-   	if !BO<2..2> then ctr_write else NO_REG endif,
-   	ctr_read,
-   	cr_read((31 - BI) >> 2),
+	   	if !BO<2..2> then ctr_write else NO_REG endif,
+	   	ctr_read,
+	   	cr_read((31 - BI) >> 2),
    	END_REG)
 
 op bran_cond_abs ( BO : card ( 5 ), BI : card ( 5 ), BD : SIMM )
@@ -955,6 +955,7 @@ op branch_cond_ctr_link ( BO : card ( 5 ), BI : card ( 5 ) )
 			BRANCH | IS_CALL | IS_COND
 		endif
    otawa_target = 0  //target not known until execution
+   otawa_used_regs = "USED_REGS"(if !BO<2..2> then ctr_write else NO_REG endif, lr_write, END_REG)
 
 op bran_cond_lr =   branch_cond_lr
                   | branch_cond_lr_link
@@ -1003,12 +1004,16 @@ op branch_cond_lr_link ( BO : card ( 5 ), BI : card ( 5 ) )
 		endif;
 		LR = ( CIA + 4 );
 		}
-   otawa_kind = if  ( BO<2..2> & BO<4..4> ) then  // on sauvegarde LR, faut-il rajouter IS_CALL en plus de IS_RETURN ?
-			BRANCH | IS_RETURN
-		else
-			BRANCH | IS_RETURN | IS_COND
-		endif
+   otawa_kind =  IS_CALL | BRANCH | (if  ( BO<2..2> & BO<4..4> ) then 0 else IS_COND endif)
    otawa_target = 0  //target not known until execution
+	otawa_used_regs = "USED_REGS"(
+		if !BO<2..2> then ctr_write else NO_REG endif,
+		ctr_read,
+		lr_write,
+		lr_read,
+		cr_read((31 - BI) >> 2),
+		END_REG)
+
 
 // ------------------------------------------------------------------------- //
 // 2.2 Non Branch Instructions
