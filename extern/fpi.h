@@ -24,6 +24,10 @@
 
 #include "../include/gliss/api.h"
 
+#include <float.h>
+#include <fenv.h>
+#include <math.h>
+
 #if defined(__cplusplus)
 extern  "C" {
 #endif
