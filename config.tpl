@@ -11,6 +11,9 @@
 #define PPC_SYSPARM_REG32_SUCCEED(s)	{ (s)->CR[7] = (s)->CR[7] & 0xFE; }
 #define PPC_SYSPARM_REG32_FAILED(s)		{ (s)->CR[7] = (s)->CR[7] | 0x01; }
 
+/* generic macro */
+#define PPC_GET_GPR(s, i)		((s)->GPR[i])
+
 /* compatibility */
 #define sc_impl(_1, _2, _3)		ppc_syscall(inst, state)
 #define print(t)				printf("%s\n", t)

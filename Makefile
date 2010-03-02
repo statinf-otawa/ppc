@@ -33,6 +33,7 @@ GFLAGS=\
 	-m code:code \
 	-m exception:extern/exception \
 	-m fpi:extern/fpi \
+	-m env:linux_env \
 	-a disasm.c
 
 NMP =\
