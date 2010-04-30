@@ -669,10 +669,18 @@ macro reg_write_range(bank, l, u) = \
 // ========================================================================= //
 
 op instruction ( x : allinstr)
-  syntax = x.syntax
-  image = x.image
-  action = { x.action ; }
-  otawa_kind = x.otawa_kind
+	syntax = x.syntax
+	image = x.image
+	action =
+	{
+  		// auto PCs' incrementation
+		PIA = CIA;
+		CIA = NIA;
+		NIA = NIA + 4;
+
+		x.action ;
+	}
+	otawa_kind = x.otawa_kind
 
 op allinstr  =  uisa_instr
                 | vea_instr
