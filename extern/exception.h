@@ -22,7 +22,7 @@
 #ifndef GLISS_PPC_EXCEPTION_H
 #define GLISS_PPC_EXCEPTION_H
 
-#include "../include/gliss/api.h"
+#include "api.h"
 
 #define launch_exception ppc_launch_exception
 

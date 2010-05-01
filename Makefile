@@ -55,7 +55,7 @@ ppc.irg: ppc.nml
 src include: ppc.irg
 	$(GLISS_PREFIX)/gep/gep $(GFLAGS) $< -S
 
-lib: src src/config.h src/disasm.c
+lib: include/ppc/config.h src src/disasm.c
 	(cd src; make)
 
 ppc-disasm:
@@ -64,19 +64,21 @@ ppc-disasm:
 ppc-sim:
 	cd sim; make
 
-src/config.h: config.tpl
-	test -d src || mkdir src
-	cp config.tpl src/config.h
+include/ppc/config.h: config.tpl include/ppc
+	cp $< $@
+
+include/ppc:
+	mkdir -p $@
 
 src/disasm.c: ppc.irg
 	$(GLISS_PREFIX)/gep/gliss-disasm $< -o $@ -c
 
 distclean: clean
-	for d in $(SUBDIRS); do test -d $$d && (cd $$d; make distclean || exit 1); done
-	rm -rf $(DISTCLEAN)
+	-for d in $(SUBDIRS); do test -d $$d && (cd $$d; make distclean || exit 0); done
+	-rm -rf $(DISTCLEAN)
 
 clean: only-clean
-	for d in $(SUBDIRS); do test -d $$d && (cd $$d; make clean || exit 1); done
+	-for d in $(SUBDIRS); do test -d $$d && (cd $$d; make clean || exit 0); done
 
 only-clean:
-	rm -rf $(CLEAN)
+	-rm -rf $(CLEAN)

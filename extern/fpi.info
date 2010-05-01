@@ -1,2 +1,2 @@
-CODE_HEADER=#include "fpi.h"
+CODE_HEADER=#include <ppc/fpi.h>
 LIBADD=-lm
