@@ -55,7 +55,7 @@ ppc.irg: ppc.nml
 src include: ppc.irg
 	$(GLISS_PREFIX)/gep/gep $(GFLAGS) $< -S
 
-lib: src src/config.h src/disasm.c
+lib: src include/ppc/config.h src/disasm.c
 	(cd src; make)
 
 ppc-disasm:
@@ -64,9 +64,9 @@ ppc-disasm:
 ppc-sim:
 	cd sim; make
 
-src/config.h: config.tpl
-	test -d src || mkdir src
-	cp config.tpl src/config.h
+include/ppc/config.h: config.tpl
+	test -d include/ppc || mkdir include/ppc
+	cp config.tpl include/ppc/config.h
 
 src/disasm.c: ppc.irg
 	$(GLISS_PREFIX)/gep/gliss-disasm $< -o $@ -c

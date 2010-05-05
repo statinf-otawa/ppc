@@ -20,7 +20,7 @@
  *	Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "exception.h"
+#include <ppc/exception.h>
 
 void ppc_launch_exception(const char *text, int type) {
 }
