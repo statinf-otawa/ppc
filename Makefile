@@ -72,11 +72,11 @@ src/disasm.c: ppc.irg
 	$(GLISS_PREFIX)/gep/gliss-disasm $< -o $@ -c
 
 distclean: clean
-	for d in $(SUBDIRS); do test -d $$d && (cd $$d; make distclean || exit 1); done
-	rm -rf $(DISTCLEAN)
+	-for d in $(SUBDIRS); do test -d $$d && (cd $$d; make distclean || exit 0); done
+	-rm -rf $(DISTCLEAN)
 
 clean: only-clean
-	for d in $(SUBDIRS); do test -d $$d && (cd $$d; make clean || exit 1); done
+	-for d in $(SUBDIRS); do test -d $$d && (cd $$d; make clean || exit 0); done
 
 only-clean:
-	rm -rf $(CLEAN)
+	-rm -rf $(CLEAN)

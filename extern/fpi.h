@@ -23,7 +23,7 @@
 #define GLISS_PPC_FPI_H
 
 #include <fenv.h>
-#include "../include/gliss/api.h"
+#include "api.h"
 
 /*#include <float.h>
 #include <fenv.h>
