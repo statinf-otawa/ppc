@@ -2,10 +2,19 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
+#include <fenv.h>
+
+
+/* GLISS V2 */
 #include <ppc/api.h>
-#include <loader.h>
+#include <ppc/loader.h>
+#include <ppc/api.h>
+#include <ppc/env.h>
+
+/* GLISS V1 */
 #include <iss_include.h>
-#include <ppc/api.h>
+
 
 extern char **environ;
 
@@ -14,14 +23,12 @@ ppc_sim_t *sim = 0;
 ppc_state_t *state = 0, *save_state = 0;
 ppc_platform_t *platform = 0;
 ppc_loader_t *loader = 0;
+fenv_t fenv2;
 
 int gliss2_prepare(int argc, char **argv) {
 	ppc_address_t addr_start = 0;
 	ppc_address_t addr_exit = 0;
-	char *c_ptr = 0;
-	//Elf32_Sym *Elf_sym = 0;
-	ppc_sym_t sym_exit = 0, sym_start = 0;
-	int i;
+	int i, found;
 
 	/* open the exec file */
 	loader = ppc_loader_open(argv[1]);
@@ -30,70 +37,35 @@ int gliss2_prepare(int argc, char **argv) {
 		return 2;
 	}
 
-	/* find the _start symbol if no start address is given */
-	addr_start = 0;
-	Elf_sym = ppc_loader_first_sym(loader, &sym_start);
-	while (sym_start >= 0)
-	{
-		Elf_sym = ppc_loader_next_sym(loader, &sym_start);
-		if (Elf_sym)
-		{
-			c_ptr = ppc_loader_name_of_sym(loader, sym_start);
-			if (strcmp(c_ptr, "_start") == 0)
-			{
-				/* we found _start */
-				addr_start = Elf_sym->st_value;
-				break;
-			}
-		}
-	}
-
-	/* start address found ? */
-	if (addr_start == 0) {
-		fprintf(stderr, "ERROR: cannot find the \"_start\" symbol and no start address is given.\n");
-		return 2;
-	}
-	else
-		printf("_start found at %08X\n", addr_start);
+	/* find the _start entry */
+	addr_start = ppc_loader_start(loader);
+	fprintf(stderr, "START=%08X\n", addr_start);
 
 	/* find the _exit symbol if no exit address is given */
-	addr_exit = 0;
-	Elf_sym = ppc_loader_first_sym(loader, &sym_exit);
-	while (sym_exit >= 0)
-	{
-		Elf_sym = ppc_loader_next_sym(loader, &sym_exit);
-		if (Elf_sym)
-		{
-			c_ptr = ppc_loader_name_of_sym(loader, sym_exit);
-			if (strcmp(c_ptr, "_exit") == 0)
-			{
-				/* we found _exit */
-				addr_exit = Elf_sym->st_value;
-				break;
-			}
+	found = 0;
+	for(i = 0; i < ppc_loader_count_syms(loader); i++) {
+		ppc_loader_sym_t sym;
+		ppc_loader_sym(loader, i, &sym);
+		if(strcmp(sym.name, "_exit") == 0) {
+			addr_exit = sym.value;
+			found = 1;
+			break;
 		}
 	}
-
-	/* exit address found ? */
-	if (addr_exit == 0) {
+	if(!found) {
 		fprintf(stderr, "ERROR: cannot find the \"_exit\" symbol and no exit address is given.\n");
 		return 2;
 	}
 	else
-		printf("_exit found at %08X\n", addr_exit);
+		fprintf(stderr, "EXIT=%08X\n", addr_exit);
 
-	/* cleanup first opening */
-	/*ppc_loader_close(loader);*/
-
-	/* make the platform */
+	/* build the program */
 	platform = ppc_new_platform();
 	if(platform == NULL)  {
 		fprintf(stderr, "ERROR: no more resources\n");
 		return 2;
 	}
-
-	/* load the image in the platform */
-	ppc_loader_load(loader, ppc_get_memory(platform, PPC_MAIN_MEMORY));
+	ppc_loader_load(loader, platform);
 
 	/* make the state depending on the platform */
 	state = ppc_new_state(platform);
@@ -121,10 +93,11 @@ int gliss2_prepare(int argc, char **argv) {
 	env.stack_pointer = 0;
 
 	/* system initialization (argv, env , auxv) */
-	ppc_stack_fill_env(loader, ppc_get_memory(platform, PPC_MAIN_MEMORY), &env);
+	ppc_stack_fill_env(loader, platform, &env);
 	ppc_registers_fill_env(&env, state);
 	ppc_loader_close(loader);
 
+	fegetenv(&fenv2);
 	return 0;
 }
 
@@ -133,7 +106,6 @@ void gliss2_cleanup(void) {
 }
 
 void gliss2_step(void) {
-	int i;
 
 	/* save the current state */
 	if(save_state)
@@ -164,10 +136,9 @@ int equals2(int param, int i) {
 /*** GLISS1 simulator ***/
 state_t s1;
 state_t *real_state = 0, *save_real_state = &s1;
+fenv_t fenv1;
 
 int gliss1_prepare(int argc, char **argv, char **envp) {
-    code_t buff_instr[20];
-    long int instruction_number;
     void *system_list[3];
     void *loader_list[4];
     int page_size_system;
@@ -202,6 +173,7 @@ int gliss1_prepare(int argc, char **argv, char **envp) {
 
     /* Init Emulator */
     real_state=iss_init(mem_list,loader_list,system_list,NULL,NULL);
+    fegetenv(&fenv1);
     return real_state == 0;
 }
 
@@ -250,7 +222,7 @@ char display(char c) {
 void compare_stack(void) {
 	address_t addr1 = real_state->gpr[1], top1 = 0x80000000;
 	ppc_address_t addr2 = state->GPR[1], top2 = 0x80000000;
-	printf("STACK COMPARISON\nSTACK1\t              \tSTACK2\n");
+	fprintf(stderr, "STACK COMPARISON\nSTACK1\t              \tSTACK2\n");
 
 	while(addr1 < top1 || addr2 < top2) {
 
@@ -260,11 +232,11 @@ void compare_stack(void) {
 					b1 = iss_mem_read8_little(real_state->M, addr1 + 1),
 					b2 = iss_mem_read8_little(real_state->M, addr1 + 2),
 					b3 = iss_mem_read8_little(real_state->M, addr1 + 3);
-			printf("%08lx %c%c%c%c %02x%02x%02x%02x\t",
+			fprintf(stderr, "%08lx %c%c%c%c %02x%02x%02x%02x\t",
 				(unsigned long)addr1, display(b0), display(b1), display(b2), display(b3), b0, b1, b2, b3);
 		}
 		else
-			printf("%08lx ???? XXXXXXXX\t", (unsigned long)addr1);
+			fprintf(stderr, "%08lx ???? XXXXXXXX\t", (unsigned long)addr1);
 		addr1 += 4;
 
 		// state 2
@@ -273,27 +245,94 @@ void compare_stack(void) {
 					b1 = ppc_mem_read8(ppc_get_memory(platform, PPC_MAIN_MEMORY), addr2 + 1),
 					b2 = ppc_mem_read8(ppc_get_memory(platform, PPC_MAIN_MEMORY), addr2 + 2),
 					b3 = ppc_mem_read8(ppc_get_memory(platform, PPC_MAIN_MEMORY), addr2 + 3);
-			printf("%08lx %c%c%c%c %02x%02x%02x%02x\n",
+			fprintf(stderr, "%08lx %c%c%c%c %02x%02x%02x%02x\n",
 				(unsigned long)addr2, display(b0), display(b1), display(b2), display(b3), b0, b1, b2, b3);
 		}
 		else
-			printf("%08x ???? XXXXXXXX\t", addr2);
+			fprintf(stderr, "%08x ???? XXXXXXXX\t", addr2);
 		addr2 += 4;
 	}
 }
 
 void display_states(void) {
 	int i;
-	printf("BEFORE\tSTATE 1\t STATE2\tAFTER\tSTATE1 STATE2\n");
+	fprintf(stderr, "BEFORE\tSTATE 1\t STATE2\tAFTER\tSTATE1 STATE2\n");
 	for(i = 0; i < 32; i++)
-		printf("r%d\t%08x %08x\t%08x %08x\n", i,
+		fprintf(stderr, "r%d\t%08x %08x\t%08x %08x\n", i,
 			save_real_state->gpr[i], save_state->GPR[i],
 			real_state->gpr[i], state->GPR[i]);
+	fprintf(stderr, "fpscr\t%08x %08x\t%08x %08x\n",
+		save_real_state->fpscr, save_state->FPSCR,
+		real_state->fpscr, state->FPSCR);
+	for(i = 0; i < 32; i++)
+		fprintf(stderr, "fr%d\t%016Lx %016Lx\t%016Lx %016Lx\n", i,
+			*(uint64_t *)&save_real_state->fpr[i],
+			*(uint64_t *)&save_state->FPR[i],
+			*(uint64_t *)&real_state->fpr[i],
+			*(uint64_t *)&state->FPR[i]);
 }
+
+
+#define CHECK_BANK(id1, id2, size) \
+	{ \
+		int i; \
+		for(i = 0; i < size; i++) \
+			if( \
+				(  save_state->id2[i] != state->id2[i] \
+				|| save_real_state->id1[i] != real_state->id1[i]) \
+			&&	state->id2[i] != real_state->id1[i]) { \
+				display_states(); \
+				fprintf(stderr, "DIFF: %s[%d]\n", #id1, i); \
+				return 1; \
+			} \
+	}
+#define CHECK_REG(id1, id2) \
+	if( \
+		(  save_state->id2 != state->id2 \
+		|| save_real_state->id1 != real_state->id1) \
+	&&	state->id2 != real_state->id1) { \
+		display_states(); \
+		fprintf(stderr, "DIFF: %s\n", #id1); \
+		return 1; \
+	}
+
+
+int compare_fenv(void) {
+	static int mask[] = {
+		FE_DIVBYZERO,
+		FE_INEXACT,
+		FE_INVALID,
+		FE_OVERFLOW,
+		FE_UNDERFLOW
+	};
+	static char *names[] = {
+		"FE_DIVBYZERO",
+		"FE_INEXACT",
+		"FE_INVALID",
+		"FE_OVERFLOW",
+		"FE_UNDERFLOW"
+	};
+	int i;
+	int diff = 0;
+	for(i = 0; i < sizeof(mask) / sizeof(int); i++) {
+		int set1, set2;
+		fesetenv(&fenv1);
+		set1 = fetestexcept(mask[i]);
+		fesetenv(&fenv2);
+		set2 = fetestexcept(mask[i]);
+		if((set1 == 0) != (set2 == 0)) {
+			diff = 1;
+			fprintf(stderr, "DIFF: fenv start: %s\n", names[i]);
+		}
+	}
+	return diff;
+}
+
 
 /*** main program ***/
 int main(int argc, char **argv) {
-	int res, i;
+	int res;
+
 
 	/* test argument count */
 	assert(argc >= 2);
@@ -306,7 +345,10 @@ int main(int argc, char **argv) {
 	if(res != 0)
 		return res;
 
+	/* initial comparison */
 	compare_stack();
+	if(compare_fenv())
+		return 1;
 
 	/* perform the simulation */
 	while(1) {
@@ -316,58 +358,39 @@ int main(int argc, char **argv) {
 			ppc_address_t pc1 = gliss1_pc();
 			ppc_address_t pc2 = gliss2_pc();
 			if(pc1 != pc2) {
+				display_states();
 				fprintf(stderr, "ERROR: pc diverge (pc1 = %08x, pc2 = %08x)\n", pc1, pc2);
 				return 1;
 			}
 		}
 
 		// test end
+		if(gliss2_ended()) {
+			fprintf(stderr, "SUCCESS: co-simulation ended.\n");
+			break;
+		}
+
+		/* traces */
 		{
-			int ended2 = gliss2_ended();
-			int ended1 = gliss1_ended();
-			if(ended1 != ended2) {
-				fprintf(stderr, "ERROR: different ended result (1 -> %d, 2 -> %d)\n", ended1, ended2);
-				return 1;
-			}
-			else if(ended1) {
-				fprintf(stderr, "SUCCESS: co-simulation ended.\n");
-				break;
-			}
+			char buffer[256];
+			ppc_inst_t *inst = ppc_decode(sim->decoder, ppc_current_inst(sim));
+			ppc_disasm(buffer, inst);
+			fprintf(stderr, "%08x: %s\n", ppc_current_inst(sim),  buffer);
+			ppc_free_inst(inst);
 		}
 
 		// simulation step
-		printf("=== GLISS1 ===\n");
+		fesetenv(&fenv1);
 		gliss1_step();
-		printf("=== GLISS2 ===\n");
+		fegetenv(&fenv1);
+		fesetenv(&fenv2);
 		gliss2_step();
-		printf("\n\n");
+		fegetenv(&fenv2);
 
 		// state comparison
-		for(i = 0; i < 32; i++) {
-			int eq1 = equals1(GPR_T, i);
-			int eq2 = equals2(PPC_GPR_T, i);
-			if(eq1 != eq2) {
-				fprintf(stdout, "ERROR: difference in change for r%d (1: ", i);
-				if(eq1)
-					fprintf(stdout, "%08x", real_state->gpr[i]);
-				else
-					fprintf(stdout, "%08x -> %08x", save_real_state->gpr[i], real_state->gpr[i]);
-				fprintf(stderr, ", ");
-				if(eq2)
-					fprintf(stdout, "%08x", state->GPR[i]);
-				else
-					fprintf(stdout, "%08x -> %08x", save_state->GPR[i], state->GPR[i]);
-				fprintf(stdout, ")\n");
-				display_states();
-				return 1;
-			}
-			if((!eq1 || !eq2) && state->GPR[i] != real_state->gpr[i]) {
-				fprintf(stdout, "ERROR: difference in value for r%d: 1->%08x, 2->%08x\n",
-					i, real_state->gpr[i], state->GPR[i]);
-				display_states();
-				return 1;
-			}
-		}
+		CHECK_BANK(gpr, GPR, 32);
+		CHECK_REG(fpscr, FPSCR);
+		CHECK_BANK(fpr, FPR, 8);
 	}
 
 	/* cleanup */
