@@ -673,12 +673,11 @@ op instruction ( x : allinstr)
 	image = x.image
 	action =
 	{
-  		// auto PCs' incrementation
+		x.action ;
+
 		PIA = CIA;
 		CIA = NIA;
 		NIA = NIA + 4;
-
-		x.action ;
 	}
 	otawa_kind = x.otawa_kind
 
