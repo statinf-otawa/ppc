@@ -36,6 +36,10 @@ GFLAGS=\
 	-m env:linux_env \
 	-a disasm.c
 
+#	-on GLISS_NO_PARAM \
+#	-on GLISS_ONE_MALLOC \
+
+
 NMP =\
 	nmp/ppc.nmp \
 	nmp/oea_instr.nmp \

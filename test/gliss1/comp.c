@@ -74,14 +74,7 @@ int gliss2_prepare(int argc, char **argv) {
 		return 2;
 	}
 
-	/* make the simulator */
-	sim = ppc_new_sim(state, addr_start, addr_exit);
-	if (sim == NULL) {
-		fprintf(stderr, "ERROR: no more resources\n");
-		return 2;
-	}
-
-	/* prepare process configuration */
+	/* system initialization (argv, env , auxv) */
 	ppc_env_t env;
 	env.argc = argc - 1;
 	env.argv = argv + 1;
@@ -91,13 +84,19 @@ int gliss2_prepare(int argc, char **argv) {
 	env.auxv = 0;
 	env.auxv_addr = 0;
 	env.stack_pointer = 0;
-
-	/* system initialization (argv, env , auxv) */
 	ppc_stack_fill_env(loader, platform, &env);
 	ppc_registers_fill_env(&env, state);
-	ppc_loader_close(loader);
 
+	/* make the simulator */
+	sim = ppc_new_sim(state, addr_start, addr_exit);
+	if (sim == NULL) {
+		fprintf(stderr, "ERROR: no more resources\n");
+		return 2;
+	}
 	fegetenv(&fenv2);
+	save_state = ppc_copy_state(state);
+
+	ppc_loader_close(loader);
 	return 0;
 }
 
@@ -122,15 +121,15 @@ int gliss2_ended(void) {
 
 
 ppc_address_t gliss2_pc(void) {
-	return state->NIA;
+	return ppc_next_addr(sim);
 }
 
-int equals2(int param, int i) {
+/*int equals2(int param, int i) {
 	switch(param) {
 	case PPC_GPR_T: return state->GPR[i] == save_state->GPR[i];
 	default: return 0;
 	}
-}
+}*/
 
 
 /*** GLISS1 simulator ***/
@@ -272,6 +271,20 @@ void display_states(void) {
 			*(uint64_t *)&state->FPR[i]);
 }
 
+#define FR1		*(uint64_t *)&(real_state->fpr[i])
+#define SFR1	*(uint64_t *)&(save_real_state->fpr[i])
+#define FR2		*(uint64_t *)&(state->FPR[i])
+#define SFR2	*(uint64_t *)&(save_state->FPR[i])
+int compare_fpr(void) {
+	int i;
+	for(i = 0; i < 32; i++)
+		if((FR1 != SFR1 || FR2 != SFR2) && FR1 != FR2) {
+			display_states();
+			fprintf(stderr, "DIFF: fpr[%d] -> %f ~ %f\n", i, real_state->fpr[i], state->FPR[i]);
+			return -1;
+		}
+	return 0;
+}
 
 #define CHECK_BANK(id1, id2, size) \
 	{ \
@@ -373,9 +386,9 @@ int main(int argc, char **argv) {
 		/* traces */
 		{
 			char buffer[256];
-			ppc_inst_t *inst = ppc_decode(sim->decoder, ppc_current_inst(sim));
+			ppc_inst_t *inst = ppc_decode(sim->decoder, ppc_next_addr(sim));
 			ppc_disasm(buffer, inst);
-			fprintf(stderr, "%08x: %s\n", ppc_current_inst(sim),  buffer);
+			fprintf(stderr, "%08x: %s\n", ppc_next_addr(sim),  buffer);
 			ppc_free_inst(inst);
 		}
 
@@ -390,7 +403,8 @@ int main(int argc, char **argv) {
 		// state comparison
 		CHECK_BANK(gpr, GPR, 32);
 		CHECK_REG(fpscr, FPSCR);
-		CHECK_BANK(fpr, FPR, 8);
+		if(compare_fpr() < 0)
+			return 1;
 	}
 
 	/* cleanup */
