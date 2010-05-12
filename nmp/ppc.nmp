@@ -164,9 +164,9 @@ type sflot     = float ( 31 , 9 )
 
 // 1.3.1 GEP registers
 
-reg PIA     [ 1 , address ]	__attr(ppc)
-reg CIA     [ 1 , address ]	__attr(pc)
-reg NIA     [ 1 , address ] __attr(npc)
+reg PIA     [ 1 , address ]
+reg CIA     [ 1 , address ]
+reg NIA     [ 1 , address ]	__attr(pc)
 
 // 1.3.2 UISA model registers
 
@@ -673,11 +673,10 @@ op instruction ( x : allinstr)
 	image = x.image
 	action =
 	{
-		x.action ;
-
 		PIA = CIA;
 		CIA = NIA;
 		NIA = NIA + 4;
+		x.action;
 	}
 	otawa_kind = x.otawa_kind
 

@@ -3,42 +3,43 @@
 root="/home/casse/Benchs/malardalen/ppc-eabi/gcc-4.4.2"
 benchs="
 	adpcm
-	bsort100
-	compress
-	crc
-	edn
-	fac
-	fir
-	janne_complex
-	lcdnum
-	ns
-	prime
-	select
-	statemate
 	bs
+	bsort100
 	cnt
+	compress
 	cover
+	crc
 	duff
+	edn
 	expint
+	fac
 	fdct
 	fibcall
+	fir
 	insertsort
+	janne_complex
 	jfdctint
-	lms
+	lcdnum
 	matmult
 	ndes
+	ns
 	nsichneu
+	prime
 	qsort-exam
 	recursion
-	st
+	select
+	statemate
 	ud
 "
 
 removed="
 	fft1
+	lms
 	ludcmp
 	minver
 	qurt
+	st
+
 "
 
 for b in $benchs; do
