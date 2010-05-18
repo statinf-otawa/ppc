@@ -744,7 +744,7 @@ op branch_rel ( BRANCH_ADDR : IMM24 )
                NIA = CIA + ( TMP_SWORD << 2 );
             }
    otawa_kind = BRANCH
-   otawa_target = __IADDR + (BRANCH_ADDR << 2)
+   otawa_target = __IADDR + (coerce(int(32), BRANCH_ADDR) << 2)
 
 op branch_abs ( BRANCH_ADDR : IMM24 )
    syntax = format ( "ba %s", BRANCH_ADDR.syntax )
@@ -754,7 +754,7 @@ op branch_abs ( BRANCH_ADDR : IMM24 )
                NIA = ( TMP_SWORD << 2 );
             }
    otawa_kind = BRANCH
-   otawa_target = BRANCH_ADDR << 2
+   otawa_target = coerce(card(32), BRANCH_ADDR) << 2
 
 op branch_link ( BRANCH_ADDR : IMM24 )
    syntax = format ( "bl %s", BRANCH_ADDR.syntax )
@@ -765,7 +765,7 @@ op branch_link ( BRANCH_ADDR : IMM24 )
                 LR  = CIA + 4;
              }
    otawa_kind = BRANCH | IS_CALL
-   otawa_target = __IADDR + (BRANCH_ADDR << 2)
+   otawa_target = __IADDR + (coerce(int(32), BRANCH_ADDR) << 2)
    otawa_used_regs = "USED_REGS"(lr_write, END_REG)
 
 op branch_link_abs ( BRANCH_ADDR : IMM24 )
@@ -777,7 +777,7 @@ op branch_link_abs ( BRANCH_ADDR : IMM24 )
                LR  = CIA + 4;
             }
    otawa_kind = BRANCH | IS_CALL
-   otawa_target = BRANCH_ADDR << 2
+   otawa_target = coerce(card(32), BRANCH_ADDR) << 2
    otawa_used_regs = "USED_REGS"(lr_write, END_REG)
 
 // Conditional Branch Instructions
@@ -819,7 +819,7 @@ op bran_cond_rel ( BO : card ( 5 ), BI : card ( 5 ), BD : SIMM )
 		else
 			BRANCH | IS_COND
 		endif
-   otawa_target = __IADDR + (BD << 2)
+   otawa_target = __IADDR + (coerce(int(32), BD) << 2)
    otawa_used_regs = "USED_REGS"(
 	   	if !BO<2..2> then ctr_write else NO_REG endif,
 	   	ctr_read,
@@ -848,7 +848,7 @@ op bran_cond_abs ( BO : card ( 5 ), BI : card ( 5 ), BD : SIMM )
 		else
 			BRANCH | IS_COND
 		endif
-   otawa_target = BD << 2
+   otawa_target = coerce(card(32), BD) << 2
    otawa_used_regs = "USED_REGS"(if !BO<2..2> then ctr_write else NO_REG endif, END_REG)
 
 op bran_cond_link ( BO : card ( 5 ), BI : card ( 5 ), BD : SIMM )
@@ -875,7 +875,7 @@ op bran_cond_link ( BO : card ( 5 ), BI : card ( 5 ), BD : SIMM )
 		else
 			BRANCH | IS_CALL | IS_COND
 		endif
-   otawa_target = __IADDR + (BD << 2)
+   otawa_target = __IADDR + (coerce(int(32), BD) << 2)
    otawa_used_regs = "USED_REGS"(if !BO<2..2> then ctr_write else NO_REG endif, lr_write, END_REG)
 
 op bran_cond_link_abs ( BO : card ( 5 ), BI : card ( 5 ), BD : SIMM )
@@ -901,7 +901,7 @@ op bran_cond_link_abs ( BO : card ( 5 ), BI : card ( 5 ), BD : SIMM )
 		else
 			BRANCH | IS_CALL | IS_COND
 		endif
-   otawa_target = BD << 2
+   otawa_target = coerce(card(32), BD) << 2
    otawa_used_regs = "USED_REGS"(if !BO<2..2> then ctr_write else NO_REG endif, lr_write, END_REG)
 
 
