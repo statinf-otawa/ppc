@@ -673,10 +673,11 @@ op instruction ( x : allinstr)
 	image = x.image
 	action =
 	{
+		x.action;
+		
 		PIA = CIA;
 		CIA = NIA;
 		NIA = NIA + 4;
-		x.action;
 	}
 	otawa_kind = x.otawa_kind
 
