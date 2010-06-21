@@ -673,11 +673,10 @@ op instruction ( x : allinstr)
 	image = x.image
 	action =
 	{
-		x.action;
-		
 		PIA = CIA;
 		CIA = NIA;
 		NIA = NIA + 4;
+		x.action;
 	}
 	otawa_kind = x.otawa_kind
 
@@ -762,7 +761,7 @@ op branch_abs ( BRANCH_ADDR : IMM24 )
    otawa_target = coerce(card(32), BRANCH_ADDR) << 2
 
 op branch_link ( BRANCH_ADDR : IMM24 )
-   syntax = format ( "bl %s", BRANCH_ADDR.syntax )
+   syntax = format ( "bl 0x%08x", __IADDR + (coerce(int(32), BRANCH_ADDR ) << 2))
    image  = format ( "010010%24b01", BRANCH_ADDR.image )
    action = {
                 TMP_SWORD = BRANCH_ADDR; // sign extension

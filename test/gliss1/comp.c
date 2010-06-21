@@ -269,6 +269,9 @@ void display_states(void) {
 			*(uint64_t *)&save_state->FPR[i],
 			*(uint64_t *)&real_state->fpr[i],
 			*(uint64_t *)&state->FPR[i]);
+	fprintf(stderr, "lr\t%08x %08x\t%08x %08x\n",
+		save_real_state->lr, save_state->LR,
+		real_state->lr, state->LR);
 }
 
 #define FR1		*(uint64_t *)&(real_state->fpr[i])
@@ -403,6 +406,7 @@ int main(int argc, char **argv) {
 		// state comparison
 		CHECK_BANK(gpr, GPR, 32);
 		CHECK_REG(fpscr, FPSCR);
+		CHECK_REG(lr, LR);
 		if(compare_fpr() < 0)
 			return 1;
 	}
