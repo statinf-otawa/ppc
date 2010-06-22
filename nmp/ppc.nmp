@@ -21,7 +21,7 @@
             //       PowerPc 755 description in nMP          //
             //    By: Daniel Gracia Perez & Marc Finet       //
             //    Revised by: Pascal Sainrat, Hugues Casse,  //
-	    //        Tahiry Ratsiambahotra                 //
+			//        Tahiry Ratsiambahotra                 //
             //     Original ppc603: Subhash Chandra Y        //
             //          Last Modified: 17/05/2006            //
             //***********************************************//
@@ -144,9 +144,10 @@ let CACHE = IS_INTERN //"14"       // Cache Management Instructions
 // ------------------------------------------------------------------------- //
 // 1.2 Types                                                                 //
 // ------------------------------------------------------------------------- //
-type bit       = card ( 1 )
-type half_byte = card ( 4 )
-type byte      = card ( 8 )
+type bit       = card (  1 )
+type half_byte = card (  4 )
+type byte      = card (  8 )
+type half_word = card ( 16 )
 type word      = card ( 32 )
 type long      = card ( 32 )
 type double    = card ( 64 )
@@ -170,7 +171,9 @@ reg NIA     [ 1 , address ]	__attr(pc)
 
 // 1.3.2 UISA model registers
 
-mem M       [ 32 , byte ]
+mem M       [ 32 , byte      ]
+mem M32     [ 32 , slong     ] alias = M [0]
+mem M16     [ 32 , half_word ] alias = M [0]
 reg GPR     [ 2 ** REGS , slong ]
 reg CR      [ 8 , half_byte ]
 reg XER     [ 1 , long ]
@@ -1334,13 +1337,7 @@ op lw_zero ( rd : index, ra : REG_IND_ZERO, d : IADDR )
    action = {
 
                TMP_EA = ra + d;
-
-               TMP_SWORD_A3 = M [ TMP_EA ];
-               TMP_SWORD_A2 = M [ TMP_EA + 1 ];
-               TMP_SWORD_A1 = M [ TMP_EA + 2 ];
-               TMP_SWORD_A0 = M [ TMP_EA + 3 ];
-
-               GPR [ rd ] = TMP_SWORD;
+               GPR [ rd ] = M32 [TMP_EA];
 
             }
    otawa_used_regs = "USED_REGS"(rzero(ra), gpr_write(rd), END_REG)
@@ -1352,12 +1349,7 @@ op lw_zero_indexed ( rd : index, ra : REG_IND_ZERO, rb : REG_IND )
 
                TMP_EA = ra + rb;
 
-               TMP_SWORD_A3 = M [ TMP_EA ];
-               TMP_SWORD_A2 = M [ TMP_EA + 1 ];
-               TMP_SWORD_A1 = M [ TMP_EA + 2 ];
-               TMP_SWORD_A0 = M [ TMP_EA + 3 ];
-
-               GPR [ rd ] = TMP_SWORD;
+               GPR [ rd ] = M32 [ TMP_EA ];
 
             }
    otawa_used_regs = "USED_REGS"(rzero(ra), gpr_read(rb.value), gpr_write(rd), END_REG)
@@ -1373,12 +1365,7 @@ op lw_zero_update ( rd : index, ra : index, d : IADDR )
 
                TMP_EA = GPR [ ra ] + d;
 
-               TMP_SWORD_A3 = M [ TMP_EA ];
-               TMP_SWORD_A2 = M [ TMP_EA + 1 ];
-               TMP_SWORD_A1 = M [ TMP_EA + 2 ];
-               TMP_SWORD_A0 = M [ TMP_EA + 3 ];
-
-               GPR [ rd ] = TMP_SWORD;
+               GPR [ rd ] = M32 [ TMP_EA ];
 
                GPR [ ra ] = TMP_EA;
 
@@ -1396,12 +1383,7 @@ op lw_zero_update_indexed ( rd : index, ra : index, rb : REG_IND )
 
                TMP_EA = GPR [ ra ] + rb;
 
-               TMP_SWORD_A3 = M [ TMP_EA ];
-               TMP_SWORD_A2 = M [ TMP_EA + 1 ];
-               TMP_SWORD_A1 = M [ TMP_EA + 2 ];
-               TMP_SWORD_A0 = M [ TMP_EA + 3 ];
-
-               GPR [ rd ] = TMP_SWORD;
+               GPR [ rd ] = M32 [ TMP_EA ];
 
                GPR [ ra ] = TMP_EA;
 
@@ -1421,10 +1403,7 @@ op lhw_br_index ( rd : index, ra : REG_IND_ZERO, rb : REG_IND )
                TMP_EA = ra + rb;
                //GPR [ rd ] = 0;
 
-               TMP_SHWORD_A1 = M [ TMP_EA + 1 ];
-               TMP_SHWORD_A0 = M [ TMP_EA ];
-
-               GPR [ rd ] = TMP_SHWORD;
+               GPR [ rd ] = M16 [ TMP_EA ];
 			   GPR [ rd ] = GPR [ rd ] & 0x0000ffff;
             }
    otawa_used_regs = "USED_REGS"(rzero(ra), gpr_read(rb.value), gpr_write(rd), END_REG)
@@ -1437,12 +1416,7 @@ op lw_br_index ( rd : index, ra : REG_IND_ZERO, rb : REG_IND )
                TMP_EA = ra + rb;
                //GPR [ rd ] = 0;
 
-               TMP_SWORD_A3 = M [ TMP_EA + 3 ];
-               TMP_SWORD_A2 = M [ TMP_EA + 2 ];
-               TMP_SWORD_A1 = M [ TMP_EA + 1 ];
-               TMP_SWORD_A0 = M [ TMP_EA ];
-
-               GPR [ rd ] = TMP_SWORD;
+               GPR [ rd ] = M32 [ TMP_EA ];
 
             }
    otawa_used_regs = "USED_REGS"(rzero(ra), gpr_read(rb.value), gpr_write(rd), END_REG)
@@ -1463,12 +1437,7 @@ op int_load_multiple ( rd : index, ra : REG_IND_ZERO, d : IMM16 )
 
                 if TMP_BYTE <= 31 then
 
-                   TMP_SWORD_A3 = M [ TMP_EA ];
-                   TMP_SWORD_A2 = M [ TMP_EA + 1 ];
-                   TMP_SWORD_A1 = M [ TMP_EA + 2 ];
-                   TMP_SWORD_A0 = M [ TMP_EA + 3 ];
-
-                   GPR [ TMP_BYTE ] = TMP_SWORD;
+                   GPR [ TMP_BYTE ] = M32 [ TMP_EA ];
 
                    TMP_BYTE = TMP_BYTE + 1;
                    TMP_EA = TMP_EA + 4;
@@ -1666,11 +1635,7 @@ op st_half_word ( rs : index, ra : REG_IND_ZERO, d : IADDR )
    action = {
 
                TMP_EA = ra + d;
-
-               TMP_SWORD = GPR [ rs ];
-
-               M [ TMP_EA ] = TMP_SWORD_A1;
-               M [ TMP_EA + 1 ] = TMP_SWORD_A0;
+               M16 [ TMP_EA ] = GPR [rs];
 
             }
    otawa_used_regs = "USED_REGS"(rzero(ra), gpr_read(rs), END_REG)
@@ -1682,11 +1647,7 @@ op st_half_word_indexed ( rs : index, ra : REG_IND_ZERO, rb : REG_IND )
    action = {
 
                TMP_EA = ra + rb;
-
-               TMP_SWORD = GPR [ rs ];
-
-               M [ TMP_EA ] = TMP_SWORD_A1;
-               M [ TMP_EA + 1 ] = TMP_SWORD_A0;
+               M16 [ TMP_EA ] = GPR [ rs ];
 
             }
    otawa_used_regs = "USED_REGS"(rzero(ra), gpr_read(rb.value), gpr_read(rs), END_REG)
@@ -1702,10 +1663,7 @@ op st_half_word_update ( rs : index, ra : index, d : IADDR )
 
 		TMP_EA = GPR [ ra ] + d;
 
-		TMP_SWORD = GPR [ rs ];
-
-		M [ TMP_EA ] = TMP_SWORD_A1;
-		M [ TMP_EA + 1 ] = TMP_SWORD_A0;
+		M16 [ TMP_EA ] = GPR [ rs ];
 
 		GPR [ ra ] = TMP_EA;
 
@@ -1723,10 +1681,7 @@ op st_half_word_update_indexed ( rs : index, ra : index, rb : REG_IND )
 
 		TMP_EA = GPR [ ra ] + rb;
 
-		TMP_SWORD = GPR [ rs ];
-
-		M [ TMP_EA ] = TMP_SWORD_A1;
-		M [ TMP_EA + 1 ] = TMP_SWORD_A0;
+		M16 [ TMP_EA ] = GPR [ rs ];
 
 		GPR [ ra ] = TMP_EA;
 
@@ -1747,12 +1702,7 @@ op st_word ( rs : index, ra : REG_IND_ZERO, d : IADDR )
 
 		TMP_EA = ra + d;
 
-		TMP_SWORD = GPR [ rs ];
-
-		M [ TMP_EA ] = TMP_SWORD_A3;
-		M [ TMP_EA + 1 ] = TMP_SWORD_A2;
-		M [ TMP_EA + 2 ] = TMP_SWORD_A1;
-		M [ TMP_EA + 3 ] = TMP_SWORD_A0;
+		M32 [ TMP_EA ] = GPR [ rs ];
 
 		}
    otawa_used_regs = "USED_REGS"(rzero(ra), gpr_read(rs), END_REG)
@@ -1764,12 +1714,7 @@ op st_word_indexed ( rs : index, ra : REG_IND_ZERO, rb : REG_IND )
 
 		TMP_EA = ra + rb;
 
-		TMP_SWORD = GPR [ rs ];
-
-		M [ TMP_EA ] = TMP_SWORD_A3;
-		M [ TMP_EA + 1 ] = TMP_SWORD_A2;
-		M [ TMP_EA + 2 ] = TMP_SWORD_A1;
-		M [ TMP_EA + 3 ] = TMP_SWORD_A0;
+		M32 [ TMP_EA ] = GPR [ rs ];
 
 		}
    otawa_used_regs = "USED_REGS"(rzero(ra), gpr_read(rb.value), gpr_read(rs), END_REG)
@@ -1785,12 +1730,7 @@ op st_word_update ( rs : index, ra : index, d : IADDR )
 
 		TMP_EA = GPR [ ra ] + d;
 
-		TMP_SWORD = GPR [ rs ];
-
-		M [ TMP_EA ] = TMP_SWORD_A3;
-		M [ TMP_EA + 1 ] = TMP_SWORD_A2;
-		M [ TMP_EA + 2 ] = TMP_SWORD_A1;
-		M [ TMP_EA + 3 ] = TMP_SWORD_A0;
+		M32 [ TMP_EA ] = GPR [ rs ];
 
 		GPR [ ra ] = TMP_EA;
 
@@ -1808,12 +1748,7 @@ op st_word_update_indexed ( rs : index, ra : index, rb : REG_IND )
 
 		TMP_EA = GPR [ ra ] + rb;
 
-		TMP_SWORD = GPR [ rs ];
-
-		M [ TMP_EA ] = TMP_SWORD_A3;
-		M [ TMP_EA + 1 ] = TMP_SWORD_A2;
-		M [ TMP_EA + 2 ] = TMP_SWORD_A1;
-		M [ TMP_EA + 3 ] = TMP_SWORD_A0;
+		M32 [ TMP_EA ] = GPR [ rs ];
 
 		GPR [ ra ] = TMP_EA;
 
@@ -1831,10 +1766,8 @@ op sthw_br_index ( rs : index, ra : REG_IND_ZERO, rb : REG_IND )
    action = {
 
 		TMP_EA = ra + rb;
-		TMP_SHWORD = GPR [ rs ];
 
-		M [ TMP_EA ]  = TMP_SHWORD_A0;
-		M [ TMP_EA + 1 ]  = TMP_SHWORD_A1;
+		M16 [ TMP_EA ]  = GPR [ rs ];
 
 		}
    otawa_used_regs = "USED_REGS"(rzero(ra), gpr_read(rb.value), gpr_read(rs), END_REG)
@@ -1845,12 +1778,7 @@ op stw_br_index ( rs : index, ra : REG_IND_ZERO, rb : REG_IND )
    action = {
 
 		TMP_EA = ra + rb;
-		TMP_SWORD = GPR [ rs ];
-
-		M [ TMP_EA ] = TMP_SWORD_A0;
-		M [ TMP_EA + 1 ] = TMP_SWORD_A1;
-		M [ TMP_EA + 2 ] = TMP_SWORD_A2;
-		M [ TMP_EA + 3 ] = TMP_SWORD_A3;
+		M32 [ TMP_EA ] = GPR [ rs ];
 
 		}
    otawa_used_regs = "USED_REGS"(rzero(ra), gpr_read(rb.value), gpr_read(rs), END_REG)
@@ -1865,17 +1793,13 @@ op int_store_multiple ( rs : index, ra : REG_IND_ZERO, d : IMM16 )
 		TMP_EA = ra + d;
 		TMP_WORD = rs;
 		recurs;
-// ToDo: TMP_EA must be a multiple of four. Otherwise aljgnment exception or results boundedly undefined
+// ToDo: TMP_EA must be a multiple of four. Otherwise alignment exception or results boundedly undefined
 
 		}
    recurs = {
 
 		if TMP_WORD <= 31 then
-			TMP_SWORD = GPR [ TMP_WORD ];
-			M [ TMP_EA ] = TMP_SWORD_A3;
-			M [ TMP_EA + 1 ] = TMP_SWORD_A2;
-			M [ TMP_EA + 2 ] = TMP_SWORD_A1;
-			M [ TMP_EA + 3 ] = TMP_SWORD_A0;
+			M32 [ TMP_EA ] = GPR [ TMP_WORD ];
 			TMP_WORD = TMP_WORD + 1;
 			TMP_EA = TMP_EA + 4;
 			recurs;
@@ -4149,12 +4073,7 @@ op lwarx ( rd: index, ra: REG_IND_ZERO, rb: REG_IND )
 		TMP_RESERVE = 1;
 		TMP_RESERVE_ADDR = TMP_EA;
 // ToDo: TMP_EA must be a multiple of four. Otherwise aljgnment exception or results boundedly undefined
-		TMP_SWORD_A3 = M [ TMP_EA ];
-		TMP_SWORD_A2 = M [ TMP_EA + 1 ];
-		TMP_SWORD_A1 = M [ TMP_EA + 2 ];
-		TMP_SWORD_A0 = M [ TMP_EA + 3 ];
-
-		GPR [ rd ] = TMP_SWORD;
+		GPR [ rd ] = M32 [ TMP_EA ];
 
 		}
    otawa_used_regs = "USED_REGS"(gpr_write(rd), rzero(ra), gpr_read(rb.value), END_REG)
@@ -4165,11 +4084,7 @@ op stwcx ( rs: REG_IND, ra: REG_IND_ZERO, rb: REG_IND )
 	action = {
 		TMP_EA = ra + rb;
 		if TMP_RESERVE == 1 then
-			TMP_SWORD = rs;
-			M [ TMP_EA ] = TMP_SWORD_A3;
-			M [ TMP_EA + 1 ] = TMP_SWORD_A2;
-			M [ TMP_EA + 2 ] = TMP_SWORD_A1;
-			M [ TMP_EA + 3 ] = TMP_SWORD_A0;
+			M32 [ TMP_EA ] = rs;
 			CR[7] = 2;
 			CR[7]<SO..SO> = XER<SO_XER..SO_XER>;
 			TMP_RESERVE = 0;

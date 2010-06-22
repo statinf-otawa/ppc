@@ -144,6 +144,11 @@ reg TMP_FLOTS_A0 [ 1 , int ( 8 ) ]
     alias = TMP_FLOTS [ 7 ]
 
 
+// Memory aliases for double and single precision
+mem MFLOT64  [ 32 , flot  ] alias = M [0]
+mem MFLOTS32 [ 32 , flots ] alias = M [0]
+
+
 // ------------------------------------------------------------------------- //
 // 1.5 Addressing Modes                                                      //
 // ------------------------------------------------------------------------- //
@@ -382,7 +387,7 @@ macro FP_CHECK_VX_EXCEPTION64(freg) = \
 		clearFPSCR(FP_FR); \
 		clearFPSCR(FP_FI); \
 		if !FPSCR<FP_VE..FP_VE> then \
-			FPR[freg]<63..0> = QNAN64; \
+			FPR[freg]<63..0>=QNAN64; \
 			setFPSCR(FP_FEX); \
 			setFPRF64(FPR[freg]); \
 		endif; \
@@ -513,13 +518,7 @@ op ufp_l_single ( frd : index, ra : REG_IND_ZERO, d : IADDR )
 		FP_SET_ROUNDING_MODE;
 
 		TMP_EA = ra + d;
-
-		TMP_FLOTS_A3 = M [ TMP_EA ];
-		TMP_FLOTS_A2 = M [ TMP_EA + 1 ];
-		TMP_FLOTS_A1 = M [ TMP_EA + 2 ];
-		TMP_FLOTS_A0 = M [ TMP_EA + 3 ];
-
-		FPR [ frd ] = TMP_FLOTS;
+		FPR [ frd ] = MFLOTS32[ TMP_EA ];
 
 		}
   user0 = "1"
@@ -530,14 +529,7 @@ op ufp_l_single_indexed ( frd : index, ra : REG_IND_ZERO, rb : REG_IND )
    action = {
 
 		FP_SET_ROUNDING_MODE;
-		TMP_EA = ra + rb;
-
-		TMP_FLOTS_A3 = M [ TMP_EA ];
-		TMP_FLOTS_A2 = M [ TMP_EA + 1 ];
-		TMP_FLOTS_A1 = M [ TMP_EA + 2 ];
-		TMP_FLOTS_A0 = M [ TMP_EA + 3 ];
-
-		FPR [ frd ] = TMP_FLOTS;
+		FPR [ frd ] = MFLOTS32[ TMP_EA ];
 
 		}
    user0 = "2"
@@ -552,15 +544,9 @@ op ufp_l_single_update ( frd : index, ra : index, d : IADDR )
                endif;
 
 		FP_SET_ROUNDING_MODE;
-		TMP_EA = GPR [ ra ] + d;
 
-		TMP_FLOTS_A3 = M [ TMP_EA ];
-		TMP_FLOTS_A2 = M [ TMP_EA + 1 ];
-		TMP_FLOTS_A1 = M [ TMP_EA + 2 ];
-		TMP_FLOTS_A0 = M [ TMP_EA + 3 ];
-
-		FPR [ frd ] = TMP_FLOTS;
-		GPR [ ra ] = TMP_EA;
+		FPR [ frd ] = MFLOTS32[ TMP_EA ];
+		GPR [ ra ]  = GPR [ ra ] + d;
 
 		}
 
@@ -576,12 +562,7 @@ op ufp_l_single_update_indexed ( frd : index, ra : index, rb : REG_IND )
 		FP_SET_ROUNDING_MODE;
 		TMP_EA = GPR [ ra ] + rb;
 
-		TMP_FLOTS_A3 = M [ TMP_EA ];
-		TMP_FLOTS_A2 = M [ TMP_EA + 1 ];
-		TMP_FLOTS_A1 = M [ TMP_EA + 2 ];
-		TMP_FLOTS_A0 = M [ TMP_EA + 3 ];
-
-		FPR [ frd ] = TMP_FLOTS;
+		FPR [ frd ] = MFLOTS32[ TMP_EA ];
 		GPR [ ra ] = TMP_EA;
 
 		}
@@ -598,18 +579,9 @@ op ufp_l_double ( frd : index, ra : REG_IND_ZERO, d : IADDR )
    image  = format ( "110010%5b%s%16b", frd, ra.image, d.image )
    action = {
 		FP_SET_ROUNDING_MODE;
+
 		TMP_EA = ra + d;
-
-		TMP_FLOT_A7 = M [ TMP_EA ];
-		TMP_FLOT_A6 = M [ TMP_EA + 1 ];
-		TMP_FLOT_A5 = M [ TMP_EA + 2 ];
-		TMP_FLOT_A4 = M [ TMP_EA + 3 ];
-		TMP_FLOT_A3 = M [ TMP_EA + 4 ];
-		TMP_FLOT_A2 = M [ TMP_EA + 5 ];
-		TMP_FLOT_A1 = M [ TMP_EA + 6 ];
-		TMP_FLOT_A0 = M [ TMP_EA + 7 ];
-
-		FPR [ frd ] = TMP_FLOT;
+		FPR [ frd ] = MFLOT64[ TMP_EA ];
 
 		}
   user0 = "1"
@@ -621,17 +593,7 @@ op ufp_l_double_indexed ( frd : index, ra : REG_IND_ZERO, rb : REG_IND )
 
 		FP_SET_ROUNDING_MODE;
 		TMP_EA = ra + rb;
-
-		TMP_FLOT_A7 = M [ TMP_EA ];
-		TMP_FLOT_A6 = M [ TMP_EA + 1 ];
-		TMP_FLOT_A5 = M [ TMP_EA + 2 ];
-		TMP_FLOT_A4 = M [ TMP_EA + 3 ];
-		TMP_FLOT_A3 = M [ TMP_EA + 4 ];
-		TMP_FLOT_A2 = M [ TMP_EA + 5 ];
-		TMP_FLOT_A1 = M [ TMP_EA + 6 ];
-		TMP_FLOT_A0 = M [ TMP_EA + 7 ];
-
-		FPR [ frd ] = TMP_FLOT;
+		FPR [ frd ] = MFLOT64[ TMP_EA ];
 
             }
    user0 = "2"
@@ -647,19 +609,8 @@ op ufp_l_double_update ( frd : index, ra : index, d : IADDR )
 
 		FP_SET_ROUNDING_MODE;
 		TMP_EA = GPR [ ra ] + d;
-
-		TMP_FLOT_A7 = M [ TMP_EA ];
-		TMP_FLOT_A6 = M [ TMP_EA + 1 ];
-		TMP_FLOT_A5 = M [ TMP_EA + 2 ];
-		TMP_FLOT_A4 = M [ TMP_EA + 3 ];
-		TMP_FLOT_A3 = M [ TMP_EA + 4 ];
-		TMP_FLOT_A2 = M [ TMP_EA + 5 ];
-		TMP_FLOT_A1 = M [ TMP_EA + 6 ];
-		TMP_FLOT_A0 = M [ TMP_EA + 7 ];
-
-		FPR [ frd ] = TMP_FLOT;
-
-		GPR [ ra ] = TMP_EA;
+		FPR [ frd ] = MFLOT64[ TMP_EA ];
+		GPR [ ra ]  = TMP_EA;
 
 		}
 
@@ -674,19 +625,8 @@ op ufp_l_double_update_indexed ( frd : index, ra : index, rb : REG_IND )
 
 		FP_SET_ROUNDING_MODE;
 		TMP_EA = GPR [ ra ] + rb;
-
-		TMP_FLOT_A7 = M [ TMP_EA ];
-		TMP_FLOT_A6 = M [ TMP_EA + 1 ];
-		TMP_FLOT_A5 = M [ TMP_EA + 2 ];
-		TMP_FLOT_A4 = M [ TMP_EA + 3 ];
-		TMP_FLOT_A3 = M [ TMP_EA + 4 ];
-		TMP_FLOT_A2 = M [ TMP_EA + 5 ];
-		TMP_FLOT_A1 = M [ TMP_EA + 6 ];
-		TMP_FLOT_A0 = M [ TMP_EA + 7 ];
-
-		FPR [ frd ] = TMP_FLOT;
-
-		GPR [ ra ] = TMP_EA;
+		FPR [ frd ] = MFLOT64[ TMP_EA ];
+		GPR [ ra ]  = TMP_EA;
 
 		}
 
@@ -714,12 +654,7 @@ op ufp_st_single ( frs : index, ra : REG_IND_ZERO, d : IADDR )
 
 		FP_SET_ROUNDING_MODE;
 		TMP_EA = ra + d;
-		TMP_FLOTS = FPR [ frs ];
-
-		M [ TMP_EA ] = TMP_FLOTS_A3;
-		M [ TMP_EA + 1 ] = TMP_FLOTS_A2;
-		M [ TMP_EA + 2 ] = TMP_FLOTS_A1;
-		M [ TMP_EA + 3 ] = TMP_FLOTS_A0;
+		MFLOTS32[ TMP_EA ] = FPR [ frs ];
 
 		}
   user0 = "6"
@@ -731,12 +666,7 @@ op ufp_st_single_indexed ( frs : index, ra : REG_IND_ZERO, rb : REG_IND )
 
 		FP_SET_ROUNDING_MODE;
 		TMP_EA = ra + rb;
-		TMP_FLOTS = FPR [ frs ];
-
-		M [ TMP_EA ] = TMP_FLOTS_A3;
-		M [ TMP_EA + 1 ] = TMP_FLOTS_A2;
-		M [ TMP_EA + 2 ] = TMP_FLOTS_A1;
-		M [ TMP_EA + 3 ] = TMP_FLOTS_A0;
+		MFLOTS32[ TMP_EA ] = FPR [ frs ];
 		}
    user0 = "5"
 
@@ -752,13 +682,7 @@ op ufp_st_single_update ( frs : index, ra : index, d : IADDR )
 		FP_SET_ROUNDING_MODE;
 		TMP_EA = GPR [ ra ] + d;
 
-		TMP_FLOTS = FPR [ frs ];
-
-		M [ TMP_EA ] = TMP_FLOTS_A3;
-		M [ TMP_EA + 1 ] = TMP_FLOTS_A2;
-		M [ TMP_EA + 2 ] = TMP_FLOTS_A1;
-		M [ TMP_EA + 3 ] = TMP_FLOTS_A0;
-
+		MFLOTS32[ TMP_EA ] = FPR [ frs ];
 		GPR [ ra ] = TMP_EA;
 
 		}
@@ -776,13 +700,7 @@ op ufp_st_single_update_indexed ( frs : index, ra : index, rb : REG_IND )
 		FP_SET_ROUNDING_MODE;
 		TMP_EA = GPR [ ra ] + rb;
 
-		TMP_FLOTS = FPR [ frs ];
-
-		M [ TMP_EA ] = TMP_FLOTS_A3;
-		M [ TMP_EA + 1 ] = TMP_FLOTS_A2;
-		M [ TMP_EA + 2 ] = TMP_FLOTS_A1;
-		M [ TMP_EA + 3 ] = TMP_FLOTS_A0;
-
+		MFLOTS32[ TMP_EA ] = FPR [ frs ];
 		GPR [ ra ] = TMP_EA;
 
 		}
@@ -802,16 +720,7 @@ op ufp_st_double ( frs : index, ra : REG_IND_ZERO, d : IADDR )
 		FP_SET_ROUNDING_MODE;
 		TMP_EA = ra + d;
 
-		TMP_FLOT = FPR [ frs ];
-
-		M [ TMP_EA ] = TMP_FLOT_A7;
-		M [ TMP_EA + 1 ] = TMP_FLOT_A6;
-		M [ TMP_EA + 2 ] = TMP_FLOT_A5;
-		M [ TMP_EA + 3 ] = TMP_FLOT_A4;
-		M [ TMP_EA + 4 ] = TMP_FLOT_A3;
-		M [ TMP_EA + 5 ] = TMP_FLOT_A2;
-		M [ TMP_EA + 6 ] = TMP_FLOT_A1;
-		M [ TMP_EA + 7 ] = TMP_FLOT_A0;
+		MFLOT64[ TMP_EA ] = FPR [ frs ];
 
 		}
   user0 = "6"
@@ -824,16 +733,7 @@ op ufp_st_double_indexed ( frs : index, ra : REG_IND_ZERO, rb : REG_IND )
 		FP_SET_ROUNDING_MODE;
 		TMP_EA = ra + rb;
 
-		TMP_FLOT = FPR [ frs ];
-
-		M [ TMP_EA ] = TMP_FLOT_A7;
-		M [ TMP_EA + 1 ] = TMP_FLOT_A6;
-		M [ TMP_EA + 2 ] = TMP_FLOT_A5;
-		M [ TMP_EA + 3 ] = TMP_FLOT_A4;
-		M [ TMP_EA + 4 ] = TMP_FLOT_A3;
-		M [ TMP_EA + 5 ] = TMP_FLOT_A2;
-		M [ TMP_EA + 6 ] = TMP_FLOT_A1;
-		M [ TMP_EA + 7 ] = TMP_FLOT_A0;
+		MFLOT64[ TMP_EA ] = FPR [ frs ];
 
 		}
    user0 = "5"
@@ -851,16 +751,7 @@ op ufp_st_double_update ( frs : index, ra : index, d : IADDR )
 		FP_SET_ROUNDING_MODE;
 		TMP_EA = GPR [ ra ] + d;
 
-		TMP_FLOT = FPR [ frs ];
-
-		M [ TMP_EA ] = TMP_FLOT_A7;
-		M [ TMP_EA + 1 ] = TMP_FLOT_A6;
-		M [ TMP_EA + 2 ] = TMP_FLOT_A5;
-		M [ TMP_EA + 3 ] = TMP_FLOT_A4;
-		M [ TMP_EA + 4 ] = TMP_FLOT_A3;
-		M [ TMP_EA + 5 ] = TMP_FLOT_A2;
-		M [ TMP_EA + 6 ] = TMP_FLOT_A1;
-		M [ TMP_EA + 7 ] = TMP_FLOT_A0;
+		MFLOT64[ TMP_EA ] = FPR [ frs ];
 
 		GPR [ ra ] = TMP_EA;
 
@@ -879,17 +770,7 @@ op ufp_st_double_update_indexed ( frs : index, ra : index, rb : REG_IND )
 		FP_SET_ROUNDING_MODE;
 		TMP_EA = GPR [ ra ] + rb;
 
-		TMP_FLOT = FPR [ frs ];
-
-		M [ TMP_EA ] = TMP_FLOT_A7;
-		M [ TMP_EA + 1 ] = TMP_FLOT_A6;
-		M [ TMP_EA + 2 ] = TMP_FLOT_A5;
-		M [ TMP_EA + 3 ] = TMP_FLOT_A4;
-		M [ TMP_EA + 4 ] = TMP_FLOT_A3;
-		M [ TMP_EA + 5 ] = TMP_FLOT_A2;
-		M [ TMP_EA + 6 ] = TMP_FLOT_A1;
-		M [ TMP_EA + 7 ] = TMP_FLOT_A0;
-
+		MFLOT64[ TMP_EA ] = FPR [ frs ];
 		GPR [ ra ] = TMP_EA;
 
 		}
@@ -2073,8 +1954,11 @@ op ufp_ctiwz ( frd : index, frb : index )
    action = {
    		"fpi_setround"(@"FPI_TOWARDZERO");
 		FP_SET_ALL_EXCEPTIONS;
+
 		TMP_SWORD = coerce(int(32), FPR[frb]);
+
 		FP_SET_RESULT32_INT(frd, TMP_SWORD);
+
 		if FPSCR<FP_VX..FP_VX> then
 			if isSNAN64(FPR[frb]) then
 				setFPSCR(FP_VXSNAN);
