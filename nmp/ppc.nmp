@@ -771,7 +771,7 @@ op branch_link ( BRANCH_ADDR : IMM24 )
                 NIA = CIA + ( TMP_SWORD << 2 );
                 LR  = CIA + 4;
              }
-   otawa_kind = BRANCH | IS_CALL
+   otawa_kind = if BRANCH_ADDR == 1 then IS_ALU | IS_INT else IS_CONTROL | IS_CALL endif
    otawa_target = __IADDR + (coerce(int(32), BRANCH_ADDR) << 2)
    otawa_used_regs = "USED_REGS"(lr_write, END_REG)
 
@@ -877,11 +877,11 @@ op bran_cond_link ( BO : card ( 5 ), BI : card ( 5 ), BD : SIMM )
 		LR = CIA + 4;
 
 		}
-   otawa_kind = if  ( BO<2..2> & BO<4..4> ) then
-			BRANCH | IS_CALL
-		else
-			BRANCH | IS_CALL | IS_COND
-		endif
+   otawa_kind =
+   		if BD == 1 then IS_ALU | IS_INT
+   		else if  ( BO<2..2> & BO<4..4> ) then BRANCH | IS_CALL
+		else BRANCH | IS_CALL | IS_COND
+		endif endif
    otawa_target = __IADDR + (coerce(int(32), BD) << 2)
    otawa_used_regs = "USED_REGS"(if !BO<2..2> then ctr_write else NO_REG endif, lr_write, END_REG)
 
