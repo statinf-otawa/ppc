@@ -3,9 +3,9 @@
 # configuration
 GLISS_PREFIX=../gliss2
 WITH_DISASM=1	# comment it to prevent disassembler building
-WITH_SIM=1		# comment it to prevent simulator building
+WITH_SIM=1	# comment it to prevent simulator building
 
-MEMORY=fast_mem
+MEMORY=vfast_mem
 LOADER=old_elf
 SYSCALL=syscall-linux
 
@@ -34,11 +34,14 @@ GFLAGS=\
 	-m exception:extern/exception \
 	-m fpi:extern/fpi \
 	-m env:linux_env \
-	-a disasm.c
-
-#	-on GLISS_NO_PARAM \
-#	-on GLISS_ONE_MALLOC \
-
+	-a disasm.c \
+	-on GLISS_ONE_MALLOC \
+	-on GLISS_NO_PARAM \
+	-on GLISS_INF_DECODE_CACHE \
+    -on GLISS_FIXED_DECODE_CACHE \
+	-on GLISS_LRU_DECODE_CACHE
+	
+#	-on GLISS_INF_DECODE_CACHE
 
 NMP =\
 	nmp/ppc.nmp \
@@ -57,7 +60,7 @@ ppc.irg: ppc.nml
 	$(GLISS_PREFIX)/irg/mkirg $< $@
 
 src include: ppc.irg
-	$(GLISS_PREFIX)/gep/gep $(GFLAGS) $< -S
+	$(GLISS_PREFIX)/gep/gep $(GFLAGS) $< -S  -p PPC.profile
 
 lib: src include/ppc/config.h src/disasm.c
 	(cd src; make)
