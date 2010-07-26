@@ -389,7 +389,7 @@ int main(int argc, char **argv) {
 		/* traces */
 		{
 			char buffer[256];
-			ppc_inst_t *inst = ppc_decode(sim->decoder, ppc_next_addr(sim));
+			ppc_inst_t *inst = ppc_next_inst(sim);
 			ppc_disasm(buffer, inst);
 			fprintf(stderr, "%08x: %s\n", ppc_next_addr(sim),  buffer);
 			ppc_free_inst(inst);
