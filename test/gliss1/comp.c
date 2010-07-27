@@ -65,7 +65,7 @@ int gliss2_prepare(int argc, char **argv) {
 		fprintf(stderr, "ERROR: no more resources\n");
 		return 2;
 	}
-	ppc_loader_load(loader, platform);
+	ppc_load(platform, loader);
 
 	/* make the state depending on the platform */
 	state = ppc_new_state(platform);
@@ -348,7 +348,6 @@ int compare_fenv(void) {
 /*** main program ***/
 int main(int argc, char **argv) {
 	int res;
-
 
 	/* test argument count */
 	assert(argc >= 2);

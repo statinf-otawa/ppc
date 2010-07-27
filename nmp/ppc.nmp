@@ -726,7 +726,7 @@ op branch_instr ( x : branch_instr_action )
    syntax  = x.syntax
    action  = { x.action; }
    set_attr_branch = 1
-   
+
    otawa_kind = BRANCH | x.otawa_kind
 
 op branch_instr_action  = branch_uncond
@@ -753,7 +753,7 @@ op branch_rel ( BRANCH_ADDR : IMM24 )
                NIA = CIA + ( TMP_SWORD << 2 );
             }
    set_attr_branch = 1
-   
+
    otawa_kind = BRANCH
    otawa_target = __IADDR + (coerce(int(32), BRANCH_ADDR) << 2)
 
@@ -765,7 +765,7 @@ op branch_abs ( BRANCH_ADDR : IMM24 )
                NIA = ( TMP_SWORD << 2 );
             }
    set_attr_branch = 1
-   
+
    otawa_kind = BRANCH
    otawa_target = coerce(card(32), BRANCH_ADDR) << 2
 
@@ -777,9 +777,8 @@ op branch_link ( BRANCH_ADDR : IMM24 )
                 NIA = CIA + ( TMP_SWORD << 2 );
                 LR  = CIA + 4;
              }
+   otawa_kind = if BRANCH_ADDR == 1 then IS_ALU | IS_INT else IS_CONTROL | IS_CALL endif
    set_attr_branch = 1
-   
-   otawa_kind = BRANCH | IS_CALL
    otawa_target = __IADDR + (coerce(int(32), BRANCH_ADDR) << 2)
    otawa_used_regs = "USED_REGS"(lr_write, END_REG)
 
@@ -792,7 +791,7 @@ op branch_link_abs ( BRANCH_ADDR : IMM24 )
                LR  = CIA + 4;
             }
    set_attr_branch = 1
-   
+
    otawa_kind = BRANCH | IS_CALL
    otawa_target = coerce(card(32), BRANCH_ADDR) << 2
    otawa_used_regs = "USED_REGS"(lr_write, END_REG)
@@ -805,8 +804,8 @@ op branch_cond_mem ( x : bran_cond_action )
    action = {
                x.action;
             }
-   set_attr_branch = 1  
-          
+   set_attr_branch = 1
+
    otawa_kind = x.otawa_kind
 
 // Conditional Branch Instructions
@@ -834,7 +833,7 @@ op bran_cond_rel ( BO : card ( 5 ), BI : card ( 5 ), BD : SIMM )
 
 		}
    set_attr_branch = 1
-   
+
    otawa_kind = if  ( BO<2..2> & BO<4..4> ) then
 			BRANCH
 		else
@@ -865,7 +864,7 @@ op bran_cond_abs ( BO : card ( 5 ), BI : card ( 5 ), BD : SIMM )
 
 	    }
    set_attr_branch = 1
-   
+
    otawa_kind = if  ( BO<2..2> & BO<4..4> ) then
 			BRANCH
 		else
@@ -893,13 +892,12 @@ op bran_cond_link ( BO : card ( 5 ), BI : card ( 5 ), BD : SIMM )
 		LR = CIA + 4;
 
 		}
+   otawa_kind =
+   		if BD == 1 then IS_ALU | IS_INT
+   		else if  ( BO<2..2> & BO<4..4> ) then BRANCH | IS_CALL
+		else BRANCH | IS_CALL | IS_COND
+		endif endif
    set_attr_branch = 1
-   
-   otawa_kind = if  ( BO<2..2> & BO<4..4> ) then
-			BRANCH | IS_CALL
-		else
-			BRANCH | IS_CALL | IS_COND
-		endif
    otawa_target = __IADDR + (coerce(int(32), BD) << 2)
    otawa_used_regs = "USED_REGS"(if !BO<2..2> then ctr_write else NO_REG endif, lr_write, END_REG)
 
@@ -922,7 +920,7 @@ op bran_cond_link_abs ( BO : card ( 5 ), BI : card ( 5 ), BD : SIMM )
 
 		}
    set_attr_branch = 1
-   
+
    otawa_kind = if  ( BO<2..2> & BO<4..4> ) then
 			BRANCH | IS_CALL
 		else
@@ -941,7 +939,7 @@ op branch_cond_reg ( x : bran_cond_reg_action )
                x.action;
             }
    set_attr_branch = 1
-   
+
    otawa_kind = x.otawa_kind
 
 // Branch Conditional on LR and CTR
@@ -965,7 +963,7 @@ op branch_cond_ctr ( BO : card ( 5 ), BI : card ( 5 ) )
 		endif;
 		}
    set_attr_branch = 1
-   
+
    otawa_kind = if  ( BO<2..2> & BO<4..4> ) then
 			BRANCH
 		else
@@ -987,7 +985,7 @@ op branch_cond_ctr_link ( BO : card ( 5 ), BI : card ( 5 ) )
 		LR = ( CIA + 4 );
 		}
    set_attr_branch = 1
-   
+
    otawa_kind = if  ( BO<2..2> & BO<4..4> ) then
 			BRANCH | IS_CALL
 		else
@@ -1015,7 +1013,7 @@ op branch_cond_lr ( BO : card ( 5 ), BI : card ( 5 ) )
 		endif;
 		}
 	set_attr_branch = 1
-	
+
 	otawa_kind = if  ( BO<2..2> & BO<4..4> ) then
 			BRANCH | IS_RETURN
 		else
@@ -1046,7 +1044,7 @@ op branch_cond_lr_link ( BO : card ( 5 ), BI : card ( 5 ) )
 		LR = ( CIA + 4 );
 		}
    set_attr_branch = 1
-   
+
    otawa_kind =  IS_CALL | BRANCH | (if  ( BO<2..2> & BO<4..4> ) then 0 else IS_COND endif)
    otawa_target = 0  //target not known until execution
    otawa_used_regs = "USED_REGS"(
