@@ -6,6 +6,7 @@ WITH_DISASM=1	# comment it to prevent disassembler building
 WITH_SIM=1	# comment it to prevent simulator building
 
 MEMORY=vfast_mem
+PROFILE=PPC.profile # Here goes the path of your profiling file 
 LOADER=old_elf
 SYSCALL=syscall-linux
 
@@ -35,10 +36,11 @@ GFLAGS=\
 	-m fpi:extern/fpi \
 	-m env:linux_env \
 	-a disasm.c \
-    -on GLISS_INSTR_FAST_STRUCT \
     -on GLISS_NO_MALLOC \
+    -on GLISS_INSTR_FAST_STRUCT \
     -PJ 9
     
+# 
 # -m decode:decode32 
 # -m decode:decode32_inf_cache 
 # -m decode:decode32_fixed_cache 
@@ -67,7 +69,7 @@ ppc.irg: ppc.nml
 	$(GLISS_PREFIX)/irg/mkirg $< $@
 
 src include: ppc.irg
-	$(GLISS_PREFIX)/gep/gep $(GFLAGS) $< -S -p PPC.profile -gen-with-trace 
+	$(GLISS_PREFIX)/gep/gep $(GFLAGS) $< -S -gen-with-trace -p $(PROFILE) 
 
 lib: src include/ppc/config.h src/disasm.c
 	(cd src; make -j)
