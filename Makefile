@@ -6,7 +6,7 @@ WITH_DISASM=1	# comment it to prevent disassembler building
 WITH_SIM=1	# comment it to prevent simulator building
 
 MEMORY=vfast_mem
-PROFILE=PPC.profile # Here goes the path of your profiling file 
+PROFILE=PPC.profile # Here goes the path of your profiling file
 LOADER=old_elf
 SYSCALL=syscall-linux
 
@@ -24,6 +24,9 @@ SUBDIRS=src sim disasm
 CLEAN=ppc.nml ppc.irg
 DISTCLEAN=include src disasm sim
 
+CFLAGS=\
+	-fno-jump-table
+
 GFLAGS=\
 	-m mem:$(MEMORY) \
 	-m loader:$(LOADER) \
@@ -38,19 +41,22 @@ GFLAGS=\
 	-a disasm.c \
     -on GLISS_NO_MALLOC \
     -on GLISS_INSTR_FAST_STRUCT \
-    -PJ 9
-    
-# 
-# -m decode:decode32 
-# -m decode:decode32_inf_cache 
-# -m decode:decode32_fixed_cache 
-# -m decode:decode32_lru_cache 
-# -m decode:decode32_trace 
+    -PJ 9 \
+    -gen-with-trace \
+    -p $(PROFILE)
+
+
+#
+# -m decode:decode32
+# -m decode:decode32_inf_cache
+# -m decode:decode32_fixed_cache
+# -m decode:decode32_lru_cache
+# -m decode:decode32_trace
 
 # fastest :
-# -m decode:decode32_dtrace 
+# -m decode:decode32_dtrace
 # To be used with GEP option "-gen-with-trace"
- 
+
 
 NMP =\
 	nmp/ppc.nmp \
@@ -69,7 +75,7 @@ ppc.irg: ppc.nml
 	$(GLISS_PREFIX)/irg/mkirg $< $@
 
 src include: ppc.irg
-	$(GLISS_PREFIX)/gep/gep $(GFLAGS) $< -S -gen-with-trace -p $(PROFILE) 
+	$(GLISS_PREFIX)/gep/gep $(GFLAGS) $< -S
 
 lib: src include/ppc/config.h src/disasm.c
 	(cd src; make -j)
