@@ -143,7 +143,6 @@ reg TMP_FLOTS_A1 [ 1 , int ( 8 ) ]
 reg TMP_FLOTS_A0 [ 1 , int ( 8 ) ]
     alias = TMP_FLOTS [ 7 ]
 
-
 // Memory aliases for double and single precision
 mem MFLOT64  [ 32 , flot  ] alias = M [0]
 mem MFLOTS32 [ 32 , flots ] alias = M [0]
@@ -195,6 +194,12 @@ macro FP_SET_ROUNDING_MODE_ACTUAL = \
 		endif; \
 	endif; \
 
+macro FP_ON_WRITE = \
+	FP_SET_ROUNDING_MODE_ACTUAL; \
+	if FPSCR<FP_OE .. FP_OE> then fp_clear = fp_clear | @"FPI_OVERFLOW"; endif; \
+	if FPSCR<FP_UE .. FP_UE> then fp_clear = fp_clear | @"FPI_UNDERFLOW"; endif; \
+	if FPSCR<FP_XE .. FP_XE> then fp_clear = fp_clear | @"FPI_INEXACT"; endif;
+
 // /HKC
 
 macro FP_SET_EXCEPTION(index, except) = \
@@ -202,16 +207,21 @@ macro FP_SET_EXCEPTION(index, except) = \
 		"fpi_clearexcept"(except); \
 	endif; \
 
+// HKC-SET
 macro FP_SET_ALL_EXCEPTIONS = \
+	"fpi_clearexcept"(fp_clear); \
+	FPSCR<FP_FEX .. FP_FEX> = 0;
+
 //	FP_SET_EXCEPTION(FP_VE, @"FPI_INVALID"); \
-	FP_SET_EXCEPTION(FP_OE, @"FPI_OVERFLOW"); \
-	FP_SET_EXCEPTION(FP_UE, @"FPI_UNDERFLOW"); \
+//	FP_SET_EXCEPTION(FP_OE, @"FPI_OVERFLOW"); \
+//	FP_SET_EXCEPTION(FP_UE, @"FPI_UNDERFLOW"); \
 //	FP_SET_EXCEPTION(FP_ZE, @"FPI_DIVBYZERO"); \
-	FP_SET_EXCEPTION(FP_XE, @"FPI_INEXACT"); \
+//	FP_SET_EXCEPTION(FP_XE, @"FPI_INEXACT"); \
 	// THESE TWO MUST BE ALWAYS SET
-	"fpi_clearexcept"(@"FPI_INVALID"); \
-	"fpi_clearexcept"(@"FPI_DIVBYZERO"); \
-	clearFPSCR(FP_FEX); \
+//	"fpi_clearexcept"(@"FPI_INVALID"); \
+//	"fpi_clearexcept"(@"FPI_DIVBYZERO"); \
+//	clearFPSCR(FP_FEX); \
+// /HKC-SET
 
 macro FP_SIGN64(x) = \
 	x<63..63> \
@@ -352,40 +362,51 @@ macro setFPRF64(x) = \
 
 macro FP_COPY_FLAGS = \
 	if "fpi_testexcept"(@"FPI_INEXACT") then \
+		// "puts"("EXN: INEXACT"); \
 		setFPSCR(FP_XX); \
 		setFPSCR(FP_FX); \
 		if FPSCR<FP_XE..FP_XE> then \
 			setFPSCR(FP_FEX);\
 		endif; \
 	endif; \
-	if "fpi_testexcept"(@"FPI_DIVBYZERO") then \
-		setFPSCR(FP_ZX); \
-		setFPSCR(FP_FX); \
-		if FPSCR<FP_ZE..FP_ZE> then \
-			setFPSCR(FP_FEX); \
+	// HKC-COPY \
+	if "fpi_testexcept"(@"FPI_DIVBYZERO" | @"FPI_UNDERFLOW" | @"FPI_OVERFLOW" | @"FPI_INVALID") then \
+	// /HKC-COPY \
+		if "fpi_testexcept"(@"FPI_DIVBYZERO") then \
+			// "puts"("EXN: DIVBYZERO"); \
+			setFPSCR(FP_ZX); \
+			setFPSCR(FP_FX); \
+			if FPSCR<FP_ZE..FP_ZE> then \
+				setFPSCR(FP_FEX); \
+			endif; \
 		endif; \
-	endif; \
-	if "fpi_testexcept"(@"FPI_UNDERFLOW") then \
-		setFPSCR(FP_UX); \
-		setFPSCR(FP_FX); \
-		if FPSCR<FP_UE..FP_UE> then \
-			setFPSCR(FP_FEX); \
+		if "fpi_testexcept"(@"FPI_UNDERFLOW") then \
+			// "puts"("EXN: UNDERFLOW"); \
+			setFPSCR(FP_UX); \
+			setFPSCR(FP_FX); \
+			if FPSCR<FP_UE..FP_UE> then \
+				setFPSCR(FP_FEX); \
+			endif; \
 		endif; \
-	endif; \
-	if "fpi_testexcept"(@"FPI_OVERFLOW") then \
-		setFPSCR(FP_OX); \
-		setFPSCR(FP_FX); \
-		if FPSCR<FP_OE..FP_OE> then \
-			setFPSCR(FP_FEX); \
+		if "fpi_testexcept"(@"FPI_OVERFLOW") then \
+			// "puts"("EXN: OVERFLOW"); \
+			setFPSCR(FP_OX); \
+			setFPSCR(FP_FX); \
+			if FPSCR<FP_OE..FP_OE> then \
+				setFPSCR(FP_FEX); \
+			endif; \
 		endif; \
-	endif; \
-	if "fpi_testexcept"(@"FPI_INVALID") then \
-		setFPSCR(FP_VX); \
-		setFPSCR(FP_FX); \
-		if FPSCR<FP_VE..FP_VE> then \
-			setFPSCR(FP_FEX); \
+		if "fpi_testexcept"(@"FPI_INVALID") then \
+			// "puts"("EXN: INVALID"); \
+			setFPSCR(FP_VX); \
+			setFPSCR(FP_FX); \
+			if FPSCR<FP_VE..FP_VE> then \
+				setFPSCR(FP_FEX); \
+			endif; \
 		endif; \
+	// HKC-COPY \
 	endif; \
+	// /HKC-COPY
 
 macro FP_CHECK_VX_EXCEPTION64(freg) = \
 	if FPSCR<FP_VX..FP_VX> then \
@@ -2063,7 +2084,7 @@ op ufp_movt_fsb0 ( crbd: index )
 		if ( crbd != FEX & crbd != VX ) then
 			FPSCR<31-crbd..31-crbd> = 0;
 			// HKC
-			FP_SET_ROUNDING_MODE_ACTUAL;
+			FP_ON_WRITE;
 			// /HKC
 		endif;
 		}
@@ -2075,7 +2096,7 @@ op ufp_movt_fsb0x ( crbd: index )
 		if ( crbd != FEX & crbd != VX ) then
 			FPSCR<31-crbd..31-crbd> = 0;
 			// HKC
-			FP_SET_ROUNDING_MODE_ACTUAL;
+			FP_ON_WRITE;
 			// /HKC
 		endif;
 		CR6_update();
@@ -2088,7 +2109,7 @@ op ufp_movt_fsb1 ( crbd: index )
 		if ( crbd != FEX & crbd != VX ) then
 			FPSCR<31-crbd..31-crbd> = 1;
 			// HKC
-			FP_SET_ROUNDING_MODE_ACTUAL;
+			FP_ON_WRITE;
 			// /HKC
 		endif;
 		}
@@ -2100,7 +2121,7 @@ op ufp_movt_fsb1x ( crbd: index )
 		if ( crbd != FEX & crbd != VX ) then
 			FPSCR<31-crbd..31-crbd> = 1;
 			// HKC
-			FP_SET_ROUNDING_MODE_ACTUAL;
+			FP_ON_WRITE;
 			// /HKC
 		endif;
 		CR6_update();
@@ -2130,7 +2151,7 @@ op ufp_movt_fsfi ( crf: card ( 3 ), imm :   card(4) )
 		else
 			FPSCR<TMP_WORD..TMP_WORD-3> = TMP_WORD1<3..0>;
 			// HKC
-			FP_SET_ROUNDING_MODE_ACTUAL;
+			FP_ON_WRITE;
 			// /HKC
 		endif;
 		}
@@ -2147,7 +2168,7 @@ op ufp_movt_fsfix ( crf: card ( 3 ), imm :   card(4) )
 		else
 			FPSCR<TMP_WORD..TMP_WORD-3> = TMP_WORD1<3..0>;
 			// HKC
-			FP_SET_ROUNDING_MODE_ACTUAL;
+			FP_ON_WRITE;
 			// /HKC
 		endif;
 		}
