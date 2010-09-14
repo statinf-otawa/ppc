@@ -9,15 +9,18 @@ rate_re = re.compile("Rate = ([0-9]+\\.[0-9]+) Mips\n")
 
 print "Performance Analysis\n"
 print "BENCH\tRATE (Mips)"
-root = "/home/vaillant/ppc2/perf/tests_loop"
-sim  = "/home/vaillant/ppc2/sim/ppc-sim -s -fast %s"
+root = "tests_loop"
+sim  = "../sim/ppc-sim -s -fast %s"
+
+#dirs = os.listdir(root)
+dirs = [ "fft1", "qurt", "ludcmp", "all_malardalen", "minver", "lms", "st", "select" ]
 
 rate_total = 0
 rate_cnt = 0
 rate_max = -1
 rate_min = -1
 
-for dir in os.listdir(root):
+for dir in dirs:
 	sys.stdout.flush()
 	file = "%s/%s/%s.elf" % (root, dir, dir)
 	rate_sum = 0

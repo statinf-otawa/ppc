@@ -177,7 +177,10 @@ macro FP_RN = \
 macro FPlaunchexcept = \
 	( FPSCR<FP_FEX..FP_FEX> && MSR<MSR_FE0..MSR_FE0> && MSR<MSR_FE1..MSR_FE1>) \
 
-macro FP_SET_ROUNDING_MODE = \
+// HKC
+macro FP_SET_ROUNDING_MODE =
+
+macro FP_SET_ROUNDING_MODE_ACTUAL = \
 	if FP_RN == FP_RN_TONEAREST then \
 		"fpi_setround"(@"FPI_TONEAREST"); \
 	else \
@@ -191,6 +194,8 @@ macro FP_SET_ROUNDING_MODE = \
 			endif; \
 		endif; \
 	endif; \
+
+// /HKC
 
 macro FP_SET_EXCEPTION(index, except) = \
 	if FPSCR<index..index> then \
@@ -2057,6 +2062,9 @@ op ufp_movt_fsb0 ( crbd: index )
 	action = {
 		if ( crbd != FEX & crbd != VX ) then
 			FPSCR<31-crbd..31-crbd> = 0;
+			// HKC
+			FP_SET_ROUNDING_MODE_ACTUAL;
+			// /HKC
 		endif;
 		}
 
@@ -2066,6 +2074,9 @@ op ufp_movt_fsb0x ( crbd: index )
 	action = {
 		if ( crbd != FEX & crbd != VX ) then
 			FPSCR<31-crbd..31-crbd> = 0;
+			// HKC
+			FP_SET_ROUNDING_MODE_ACTUAL;
+			// /HKC
 		endif;
 		CR6_update();
 		}
@@ -2076,6 +2087,9 @@ op ufp_movt_fsb1 ( crbd: index )
 	action = {
 		if ( crbd != FEX & crbd != VX ) then
 			FPSCR<31-crbd..31-crbd> = 1;
+			// HKC
+			FP_SET_ROUNDING_MODE_ACTUAL;
+			// /HKC
 		endif;
 		}
 
@@ -2085,6 +2099,9 @@ op ufp_movt_fsb1x ( crbd: index )
 	action = {
 		if ( crbd != FEX & crbd != VX ) then
 			FPSCR<31-crbd..31-crbd> = 1;
+			// HKC
+			FP_SET_ROUNDING_MODE_ACTUAL;
+			// /HKC
 		endif;
 		CR6_update();
 		}
@@ -2112,6 +2129,9 @@ op ufp_movt_fsfi ( crf: card ( 3 ), imm :   card(4) )
 			FPSCR<28..28> = TMP_WORD1 <0..0>;
 		else
 			FPSCR<TMP_WORD..TMP_WORD-3> = TMP_WORD1<3..0>;
+			// HKC
+			FP_SET_ROUNDING_MODE_ACTUAL;
+			// /HKC
 		endif;
 		}
 
@@ -2126,6 +2146,9 @@ op ufp_movt_fsfix ( crf: card ( 3 ), imm :   card(4) )
 			FPSCR<28..28> = TMP_WORD1 <0..0>;
 		else
 			FPSCR<TMP_WORD..TMP_WORD-3> = TMP_WORD1<3..0>;
+			// HKC
+			FP_SET_ROUNDING_MODE_ACTUAL;
+			// /HKC
 		endif;
 		}
 // End of uisa_fp description
