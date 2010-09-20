@@ -41,6 +41,7 @@ GFLAGS=\
 	-a disasm.c \
     -on GLISS_NO_MALLOC \
     -on GLISS_INSTR_FAST_STRUCT \
+    -on NO_PAGE_INIT \
     -PJ 9 \
     -gen-with-trace \
     -p $(PROFILE)
