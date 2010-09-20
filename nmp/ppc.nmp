@@ -304,6 +304,13 @@ reg TMP_SWORD_A1 [ 1 , int ( 8 ) ]
 reg TMP_SWORD_A0 [ 1 , int ( 8 ) ]
     alias = TMP_SWORD [ 7 ]
 
+// HKC-SET
+// FPSCR bit optimization
+reg fp_clear[1, card(32)]
+// /HKC-SET
+
+
+
 
 // ------------------------------------------------------------------------- //
 // 1.5 Addressing Modes                                                      //
@@ -711,7 +718,14 @@ op init ()
 		CR[0]=0; CR[1]=0; CR[2]=0; CR[3]=0; CR[4]=0; CR[5]=0; CR[6]=0; CR[7]=0;
 		L2PM = 0;
 		XER = 0;
-		FPSCR = 0;	// Fixed by casse@irit.fr
+
+		// HKC
+		FPSCR = 0;
+		"fpi_setround"(@"FPI_TONEAREST");
+		// /HKC
+		// HKC-SET
+		fp_clear = @"FPI_INVALID" | @"FPI_DIVBYZERO";
+		// /HKC-SET
 	}
 
 op uisa_base_instr  = branch_instr
