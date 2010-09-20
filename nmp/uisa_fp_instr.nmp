@@ -388,21 +388,34 @@ macro FP_COPY_FLAGS = \
 				setFPSCR(FP_FEX); \
 			endif; \
 		endif; \
+		if "fpi_testexcept"(@"FPI_INVALID") then \
+			// "puts"("EXN: INVALID"); \
+			setFPSCR(FP_VX); \
+			setFPSCR(FP_FX); \
+			// HKC-SETR \
+			clearFPSCR(FP_FR); \
+			clearFPSCR(FP_FI); \
+			// /HKC-SETR \
+			if FPSCR<FP_VE..FP_VE> then \
+				setFPSCR(FP_FEX); \
+				// HKC-SETR \
+				FPR[frd]<63..0>=QNAN64; // TODO replace with macro argument \
+				setFPRF64(FPR[frd]); \
+				// /HKC-SETR
+			endif; \
 		if "fpi_testexcept"(@"FPI_OVERFLOW") then \
 			// "puts"("EXN: OVERFLOW"); \
 			setFPSCR(FP_OX); \
 			setFPSCR(FP_FX); \
 			if FPSCR<FP_OE..FP_OE> then \
 				setFPSCR(FP_FEX); \
+			else \
+				if MSR<MSR_FE0..MSR_FE0>!=0 && MSR<MSR_FE1..MSR_FE1>!=0 then \
+					setFPSCR(FP_XX); \
+					setFPSCR(FP_FI); \
+				endif; \
 			endif; \
 		endif; \
-		if "fpi_testexcept"(@"FPI_INVALID") then \
-			// "puts"("EXN: INVALID"); \
-			setFPSCR(FP_VX); \
-			setFPSCR(FP_FX); \
-			if FPSCR<FP_VE..FP_VE> then \
-				setFPSCR(FP_FEX); \
-			endif; \
 		endif; \
 	// HKC-COPY \
 	endif; \
@@ -451,31 +464,45 @@ macro FP_CHECK_XX_EXCEPTION = \
 	endif; \
 
 macro FP_SET_RESULT64(freg, result) = \
+	// HKC-SETR
 	FP_COPY_FLAGS; \
-	FP_CHECK_VX_EXCEPTION64(freg); \
 	if !(FPSCR<FP_FEX..FP_FEX> && MSR<MSR_FE0..MSR_FE0>==0 && MSR<MSR_FE1..MSR_FE1>==0) then \
-		FP_CHECK_ZX_EXCEPTION64(); \
-		if !(FPSCR<FP_FEX..FP_FEX> && MSR<MSR_FE0..MSR_FE0>==0 && MSR<MSR_FE1..MSR_FE1>==0) then \
-			FPR[freg] = result; \
-			FP_CHECK_OX_EXCEPTION; \
-			FP_CHECK_UX_EXCEPTION; \
-			FP_CHECK_XX_EXCEPTION; \
-		endif; \
+		FPR[freg] = result; \
 	endif; \
+	// /HKC-SETR
+
+//	FP_COPY_FLAGS; \
+//	FP_CHECK_VX_EXCEPTION64(freg); \
+//	if !(FPSCR<FP_FEX..FP_FEX> && MSR<MSR_FE0..MSR_FE0>==0 && MSR<MSR_FE1..MSR_FE1>==0) then \
+//		FP_CHECK_ZX_EXCEPTION64(); \
+//		if !(FPSCR<FP_FEX..FP_FEX> && MSR<MSR_FE0..MSR_FE0>==0 && MSR<MSR_FE1..MSR_FE1>==0) then \
+//			FPR[freg] = result; \
+//			FP_CHECK_OX_EXCEPTION; \
+//			FP_CHECK_UX_EXCEPTION; \
+//			FP_CHECK_XX_EXCEPTION; \
+//		endif; \
+//	endif; \
 
 macro FP_SET_RESULT32(freg,result) = \
+	// HKC-SETR
 	FP_COPY_FLAGS; \
-	FP_CHECK_VX_EXCEPTION64(freg); \
 	if !(FPSCR<FP_FEX..FP_FEX> && MSR<MSR_FE0..MSR_FE0>==0 && MSR<MSR_FE1..MSR_FE1>==0) then \
-		FP_CHECK_ZX_EXCEPTION64(); \
-		if !(FPSCR<FP_FEX..FP_FEX> && MSR<MSR_FE0..MSR_FE0>==0 && MSR<MSR_FE1..MSR_FE1>==0) then \
-			FPR[freg] = result; \
-			//FPR[freg] = result; \
-			FP_CHECK_OX_EXCEPTION; \
-			FP_CHECK_XX_EXCEPTION; \
-			FP_CHECK_UX_EXCEPTION; \
-		endif; \
+		FPR[freg] = result; \
 	endif; \
+	// /HKC-SETR
+
+//	FP_COPY_FLAGS; \
+//	FP_CHECK_VX_EXCEPTION64(freg); \
+//	if !(FPSCR<FP_FEX..FP_FEX> && MSR<MSR_FE0..MSR_FE0>==0 && MSR<MSR_FE1..MSR_FE1>==0) then \
+//		FP_CHECK_ZX_EXCEPTION64(); \
+//		if !(FPSCR<FP_FEX..FP_FEX> && MSR<MSR_FE0..MSR_FE0>==0 && MSR<MSR_FE1..MSR_FE1>==0) then \
+//			FPR[freg] = result; \
+//			//FPR[freg] = result; \
+//			FP_CHECK_OX_EXCEPTION; \
+//			FP_CHECK_XX_EXCEPTION; \
+//			FP_CHECK_UX_EXCEPTION; \
+//		endif; \
+//	endif; \
 
 macro FP_SET_RESULT32_INT(freg,result) = \
 	FP_COPY_FLAGS; \

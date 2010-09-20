@@ -4,6 +4,13 @@ import sys
 import os
 import subprocess
 import re
+from optparse import OptionParser
+
+parser = OptionParser()
+parser.add_option("-i", "--int", action="store_true", dest="int", default=False, help="use integer benches")
+parser.add_option("-f", "--float", action="store_true", dest="float", default=False, help="use float benches")
+(options, args) = parser.parse_args()
+
 
 rate_re = re.compile("Rate = ([0-9]+\\.[0-9]+) Mips\n")
 
@@ -12,8 +19,13 @@ print "BENCH\tRATE (Mips)"
 root = "tests_loop"
 sim  = "../sim/ppc-sim -s -fast %s"
 
-#dirs = os.listdir(root)
-dirs = [ "fft1", "qurt", "ludcmp", "all_malardalen", "minver", "lms", "st", "select" ]
+fp_dirs = [ "fft1", "qurt", "ludcmp", "all_malardalen", "minver", "lms", "st", "select" ]
+if options.float:
+	dirs = fp_dirs
+elif options.int:
+	dirs = [t for t in os.listdir(root) if t not in fp_dirs]
+else:
+	dirs = os.listdir(root)
 
 rate_total = 0
 rate_cnt = 0
@@ -31,6 +43,8 @@ for dir in dirs:
 			match = rate_re.match(line)
 			if match:
 				rate_sum = rate_sum + float(match.group(1))
+			#else:
+			#	sys.stdout.write(line)
 
 	rate_avg = rate_sum / 1
 	print "%s\t%f" % (dir, rate_avg )
