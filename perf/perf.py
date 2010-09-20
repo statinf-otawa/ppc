@@ -9,8 +9,8 @@ rate_re = re.compile("Rate = ([0-9]+\\.[0-9]+) Mips\n")
 
 print "Performance Analysis\n"
 print "BENCH\tRATE (Mips)"
-root = "/home/vaillant/ppc2/perf/tests_loop"
-sim  = "/home/vaillant/ppc2/sim/ppc-sim -s -fast %s"
+root = "tests_loop"
+sim  = "../sim/ppc-sim -s -fast %s"
 
 rate_total = 0
 rate_cnt = 0
