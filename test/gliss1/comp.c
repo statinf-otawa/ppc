@@ -65,7 +65,7 @@ int gliss2_prepare(int argc, char **argv) {
 		fprintf(stderr, "ERROR: no more resources\n");
 		return 2;
 	}
-	ppc_loader_load(loader, platform);
+	ppc_load(platform, loader);
 
 	/* make the state depending on the platform */
 	state = ppc_new_state(platform);
@@ -349,7 +349,6 @@ int compare_fenv(void) {
 int main(int argc, char **argv) {
 	int res;
 
-
 	/* test argument count */
 	assert(argc >= 2);
 
@@ -389,7 +388,7 @@ int main(int argc, char **argv) {
 		/* traces */
 		{
 			char buffer[256];
-			ppc_inst_t *inst = ppc_decode(sim->decoder, ppc_next_addr(sim));
+			ppc_inst_t *inst = ppc_next_inst(sim);
 			ppc_disasm(buffer, inst);
 			fprintf(stderr, "%08x: %s\n", ppc_next_addr(sim),  buffer);
 			ppc_free_inst(inst);

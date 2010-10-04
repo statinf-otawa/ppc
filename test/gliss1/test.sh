@@ -44,7 +44,7 @@ removed="
 
 for b in $benchs; do
 	file="$root/$b/$b.elf"
-	echo "PROCESSING $file"
+	echo "PROCESSING $file : ./comp $file"
 	if ./comp $file 2> $b.out; then
 		true
 	else

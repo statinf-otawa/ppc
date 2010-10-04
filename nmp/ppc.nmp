@@ -21,7 +21,7 @@
             //       PowerPc 755 description in nMP          //
             //    By: Daniel Gracia Perez & Marc Finet       //
             //    Revised by: Pascal Sainrat, Hugues Casse,  //
-			//        Tahiry Ratsiambahotra                 //
+			//        Tahiry Ratsiambahotra                  //
             //     Original ppc603: Subhash Chandra Y        //
             //          Last Modified: 17/05/2006            //
             //***********************************************//
@@ -303,6 +303,13 @@ reg TMP_SWORD_A1 [ 1 , int ( 8 ) ]
 
 reg TMP_SWORD_A0 [ 1 , int ( 8 ) ]
     alias = TMP_SWORD [ 7 ]
+
+// HKC-SET
+// FPSCR bit optimization
+reg fp_clear[1, card(32)]
+// /HKC-SET
+
+
 
 
 // ------------------------------------------------------------------------- //
@@ -711,7 +718,14 @@ op init ()
 		CR[0]=0; CR[1]=0; CR[2]=0; CR[3]=0; CR[4]=0; CR[5]=0; CR[6]=0; CR[7]=0;
 		L2PM = 0;
 		XER = 0;
-		FPSCR = 0;	// Fixed by casse@irit.fr
+
+		// HKC
+		FPSCR = 0;
+		"fpi_setround"(@"FPI_TONEAREST");
+		// /HKC
+		// HKC-SET
+		fp_clear = @"FPI_INVALID" | @"FPI_DIVBYZERO";
+		// /HKC-SET
 	}
 
 op uisa_base_instr  = branch_instr
@@ -725,6 +739,8 @@ op branch_instr ( x : branch_instr_action )
    image   = x.image
    syntax  = x.syntax
    action  = { x.action; }
+   set_attr_branch = 1
+
    otawa_kind = BRANCH | x.otawa_kind
 
 op branch_instr_action  = branch_uncond
@@ -750,6 +766,8 @@ op branch_rel ( BRANCH_ADDR : IMM24 )
                TMP_SWORD = BRANCH_ADDR; // sign extension
                NIA = CIA + ( TMP_SWORD << 2 );
             }
+   set_attr_branch = 1
+
    otawa_kind = BRANCH
    otawa_target = __IADDR + (coerce(int(32), BRANCH_ADDR) << 2)
 
@@ -760,6 +778,8 @@ op branch_abs ( BRANCH_ADDR : IMM24 )
                TMP_SWORD = BRANCH_ADDR; // sign extension
                NIA = ( TMP_SWORD << 2 );
             }
+   set_attr_branch = 1
+
    otawa_kind = BRANCH
    otawa_target = coerce(card(32), BRANCH_ADDR) << 2
 
@@ -771,7 +791,8 @@ op branch_link ( BRANCH_ADDR : IMM24 )
                 NIA = CIA + ( TMP_SWORD << 2 );
                 LR  = CIA + 4;
              }
-   otawa_kind = BRANCH | IS_CALL
+   otawa_kind = if BRANCH_ADDR == 1 then IS_ALU | IS_INT else IS_CONTROL | IS_CALL endif
+   set_attr_branch = 1
    otawa_target = __IADDR + (coerce(int(32), BRANCH_ADDR) << 2)
    otawa_used_regs = "USED_REGS"(lr_write, END_REG)
 
@@ -783,6 +804,8 @@ op branch_link_abs ( BRANCH_ADDR : IMM24 )
                NIA = ( TMP_SWORD << 2 );
                LR  = CIA + 4;
             }
+   set_attr_branch = 1
+
    otawa_kind = BRANCH | IS_CALL
    otawa_target = coerce(card(32), BRANCH_ADDR) << 2
    otawa_used_regs = "USED_REGS"(lr_write, END_REG)
@@ -795,6 +818,8 @@ op branch_cond_mem ( x : bran_cond_action )
    action = {
                x.action;
             }
+   set_attr_branch = 1
+
    otawa_kind = x.otawa_kind
 
 // Conditional Branch Instructions
@@ -821,6 +846,8 @@ op bran_cond_rel ( BO : card ( 5 ), BI : card ( 5 ), BD : SIMM )
 		endif;
 
 		}
+   set_attr_branch = 1
+
    otawa_kind = if  ( BO<2..2> & BO<4..4> ) then
 			BRANCH
 		else
@@ -850,6 +877,8 @@ op bran_cond_abs ( BO : card ( 5 ), BI : card ( 5 ), BD : SIMM )
 		endif;
 
 	    }
+   set_attr_branch = 1
+
    otawa_kind = if  ( BO<2..2> & BO<4..4> ) then
 			BRANCH
 		else
@@ -877,11 +906,12 @@ op bran_cond_link ( BO : card ( 5 ), BI : card ( 5 ), BD : SIMM )
 		LR = CIA + 4;
 
 		}
-   otawa_kind = if  ( BO<2..2> & BO<4..4> ) then
-			BRANCH | IS_CALL
-		else
-			BRANCH | IS_CALL | IS_COND
-		endif
+   otawa_kind =
+   		if BD == 1 then IS_ALU | IS_INT
+   		else if  ( BO<2..2> & BO<4..4> ) then BRANCH | IS_CALL
+		else BRANCH | IS_CALL | IS_COND
+		endif endif
+   set_attr_branch = 1
    otawa_target = __IADDR + (coerce(int(32), BD) << 2)
    otawa_used_regs = "USED_REGS"(if !BO<2..2> then ctr_write else NO_REG endif, lr_write, END_REG)
 
@@ -903,6 +933,8 @@ op bran_cond_link_abs ( BO : card ( 5 ), BI : card ( 5 ), BD : SIMM )
 		LR = CIA + 4;
 
 		}
+   set_attr_branch = 1
+
    otawa_kind = if  ( BO<2..2> & BO<4..4> ) then
 			BRANCH | IS_CALL
 		else
@@ -920,6 +952,8 @@ op branch_cond_reg ( x : bran_cond_reg_action )
    action = {
                x.action;
             }
+   set_attr_branch = 1
+
    otawa_kind = x.otawa_kind
 
 // Branch Conditional on LR and CTR
@@ -942,6 +976,8 @@ op branch_cond_ctr ( BO : card ( 5 ), BI : card ( 5 ) )
 			NIA = ( CTR & 0xfffffffc );
 		endif;
 		}
+   set_attr_branch = 1
+
    otawa_kind = if  ( BO<2..2> & BO<4..4> ) then
 			BRANCH
 		else
@@ -962,6 +998,8 @@ op branch_cond_ctr_link ( BO : card ( 5 ), BI : card ( 5 ) )
 		endif;
 		LR = ( CIA + 4 );
 		}
+   set_attr_branch = 1
+
    otawa_kind = if  ( BO<2..2> & BO<4..4> ) then
 			BRANCH | IS_CALL
 		else
@@ -988,6 +1026,8 @@ op branch_cond_lr ( BO : card ( 5 ), BI : card ( 5 ) )
 			NIA = ( LR & 0xfffffffc );
 		endif;
 		}
+	set_attr_branch = 1
+
 	otawa_kind = if  ( BO<2..2> & BO<4..4> ) then
 			BRANCH | IS_RETURN
 		else
@@ -1017,9 +1057,11 @@ op branch_cond_lr_link ( BO : card ( 5 ), BI : card ( 5 ) )
 		endif;
 		LR = ( CIA + 4 );
 		}
+   set_attr_branch = 1
+
    otawa_kind =  IS_CALL | BRANCH | (if  ( BO<2..2> & BO<4..4> ) then 0 else IS_COND endif)
    otawa_target = 0  //target not known until execution
-	otawa_used_regs = "USED_REGS"(
+   otawa_used_regs = "USED_REGS"(
 		if !BO<2..2> then ctr_write else NO_REG endif,
 		ctr_read,
 		lr_write,
