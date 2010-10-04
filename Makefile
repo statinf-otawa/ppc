@@ -28,8 +28,6 @@ GFLAGS=\
 	-m loader:$(LOADER) \
 	-m syscall:$(SYSCALL) \
 	-m sysparm:sysparm-reg32 \
-	-m fetch:fetch32 \
-	-m decode:decode32 \
 	-m code:code \
 	-m exception:extern/exception \
 	-m fpi:extern/fpi \
