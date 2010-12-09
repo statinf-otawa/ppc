@@ -4033,8 +4033,18 @@ op mov_from_cr ( rd : index )
             }
    otawa_used_regs = "USED_REGS"(gpr_write(rd), cr_read_range(0, 7), END_REG)
 
+// useful macros for SPR
+macro spr_code(x) = (x<4..0>::x<8..5>)
+macro spr_text(s) = \
+	switch(spr_code(s)) { \
+   	case 1: "xer" \
+	case 8: "lr" \
+	case 9: "ctr" \
+	default: format("%d", spr_code(s)) \
+	}
+
 op mov_to_spr ( rs : index, spr : card ( 9 ) )
-   syntax = format ( "mtspr %d,r%d", spr, rs )
+   syntax = format("mtspr %s,r%d", spr_text(spr), rs)
    image  = format ( "011111%5b0%9b01110100110", rs, spr )
    action = {
 
@@ -4065,7 +4075,7 @@ op mov_to_spr ( rs : index, spr : card ( 9 ) )
 		END_REG)
 
 op mov_from_spr ( rd : index, spr : card ( 9 ) )
-   syntax = format ( "mfspr r%d,%d", rd, spr )
+   syntax = format("mfspr r%d,%s", rd, spr_text(spr))
    image  = format ( "011111%5b0%9b01010100110", rd, spr )
    action = {
 
