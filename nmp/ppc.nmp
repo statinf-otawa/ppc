@@ -167,7 +167,8 @@ type sflot     = float ( 31 , 9 )
 
 reg PIA     [ 1 , address ]
 reg CIA     [ 1 , address ]
-reg NIA     [ 1 , address ]	__attr(pc)
+reg NIA     [ 1 , address ]
+	pc = 1
 
 // 1.3.2 UISA model registers
 

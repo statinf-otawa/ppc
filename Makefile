@@ -39,13 +39,13 @@ GFLAGS=\
 	-m fpi:extern/fpi \
 	-m env:linux_env \
 	-a disasm.c \
-	-on GLISS_NO_MALLOC \
-	-on GLISS_INSTR_FAST_STRUCT \
-	-on NO_PAGE_INIT \
-	-PJ 9 \
-	-gen-with-trace \
-	-p $(PROFILE) \
-	-m decode:$(DECODER)
+#	-on GLISS_NO_MALLOC \
+#	-on GLISS_INSTR_FAST_STRUCT \
+#	-on NO_PAGE_INIT \
+#	-PJ 9 \
+#	-gen-with-trace \
+#	-p $(PROFILE) \
+#	-m decode:$(DECODER)
 
 NMP =\
 	nmp/ppc.nmp \
