@@ -1,0 +1,43 @@
+
+
+include "nmp/state.nmp"
+
+let proc = "ppc"
+let with_vle = 1
+let bit_order = "uppermost" // Be careful ; this is not the convention used in PPC manuals.
+let M_is_little = "MSR & (0x01<<MSR_LE)" // MSR should be correctly initialized in the init rule below
+
+let gliss_isize = "32,16"
+
+op multi = normal_isa | vle_isa
+
+op normal_isa(x: instrs32)
+	syntax = x.syntax
+	image = x.image
+	action = {
+		PIA = CIA;
+		CIA = NIA;
+		NIA = NIA + 4;
+		x.action;
+	}
+
+op instrs32  =    uisa_instr
+                | vea_instr
+                | oea_instr
+
+op vle_isa(x: vle)
+	syntax = x.syntax
+	image = x.image
+	action = {
+		PIA = CIA;
+		CIA = NIA;
+		NIA = NIA + 2;
+		x.action;
+	}
+
+
+include op "nmp/uisa_fp_instr.nmp"
+include op "nmp/vea_instr.nmp"
+include op "nmp/oea_instr.nmp"
+include op "nmp/ppc32.nmp"
+include op "nmp/vle.nmp"

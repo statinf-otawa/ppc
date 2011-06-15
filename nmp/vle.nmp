@@ -1,0 +1,18 @@
+
+op vle = vle_add
+
+macro vle_index(i) = \
+	if i < 8 then i else i + 16 endif
+
+mode vle_idx(idx: card(4)) = GPR[vle_index(idx)]
+	syntax = format("r%d", vle_index(idx))
+	image = format("%4b", idx)
+	index = vle_index(idx)
+
+op vle_add(rx: vle_idx, ry: vle_idx)
+	syntax = format("se_add %s,%s", rx.syntax, ry.syntax)
+	image = format("000001 00 %s %s", rx.image, ry.image)
+	action = {
+		rx = rx + ry;
+	}
+

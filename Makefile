@@ -2,8 +2,9 @@
 
 # configuration
 GLISS_PREFIX=../gliss2
-WITH_DISASM=1	# comment it to prevent disassembler building
-WITH_SIM=1		# comment it to prevent simulator building
+WITH_DISASM	= 1	# comment it to prevent disassembler building
+WITH_SIM	= 1	# comment it to prevent simulator building
+WITH_VLE	= 1	# comment it to prevent use of VLE
 
 MEMORY=vfast_mem
 PROFILE=PPC.profile # Here goes the path of your profiling file
@@ -38,20 +39,25 @@ GFLAGS=\
 	-m exception:extern/exception \
 	-m fpi:extern/fpi \
 	-m env:linux_env \
-	-a disasm.c \
-#	-on GLISS_NO_MALLOC \
-#	-on GLISS_INSTR_FAST_STRUCT \
-#	-on NO_PAGE_INIT \
-#	-PJ 9 \
-#	-gen-with-trace \
-#	-p $(PROFILE) \
-#	-m decode:$(DECODER)
+	-a disasm.c
+
+ifdef WITH_VLE
+PROC=ppc
+NMP_MAIN = nmp/ppc_vle.nmp nmp/vle.nmp
+else
+PROCH=ppc
+NMP_MAIN = nmp/ppc.nmp
+endif
 
 NMP =\
-	nmp/ppc.nmp \
+	$(NMP_MAIN) \
+	nmp/ppc32.nmp \
 	nmp/oea_instr.nmp \
 	nmp/uisa_fp_instr.nmp  \
-	nmp/vea_instr.nmp
+	nmp/vea_instr.nmp \
+	nmp/state.nmp \
+	nmp/ppc32.nmp
+
 
 
 # targets
@@ -66,7 +72,7 @@ ppc.irg: ppc.nml
 src include: ppc.irg
 	$(GLISS_PREFIX)/gep/gep $(GFLAGS) $< -S
 
-lib: src include/ppc/config.h src/disasm.c
+lib: src include/$(PROC)/config.h src/disasm.c
 	(cd src; make -j)
 
 ppc-disasm:
@@ -75,9 +81,9 @@ ppc-disasm:
 ppc-sim:
 	cd sim; make -j3
 
-include/ppc/config.h: config.tpl
-	test -d include/ppc || mkdir include/ppc
-	cp config.tpl include/ppc/config.h
+include/$(PROC)/config.h: config.tpl
+	test -d include/$(PROC) || mkdir include/$(PROC)
+	cp config.tpl include/$(PROC)/config.h
 
 src/disasm.c: ppc.irg
 	$(GLISS_PREFIX)/gep/gliss-disasm $< -o $@ -c
