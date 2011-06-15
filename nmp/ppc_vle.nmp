@@ -9,8 +9,13 @@ let M_is_little = "MSR & (0x01<<MSR_LE)" // MSR should be correctly initialized 
 
 let gliss_isize = "32,16"
 
+// pseudo-IS selector
+reg _ISA[1,card(1)]
+
 op multi = normal_isa | vle_isa
 
+
+// normal instruction set
 op normal_isa(x: instrs32)
 	syntax = x.syntax
 	image = x.image
@@ -20,12 +25,22 @@ op normal_isa(x: instrs32)
 		NIA = NIA + 4;
 		x.action;
 	}
+	instruction_set_select = _ISA == 0
+	instruction_set_name = "PPC"
 
 op instrs32  =    uisa_instr
                 | vea_instr
                 | oea_instr
 
+
+// VLE instruction set
 op vle_isa(x: vle)
+	instruction_set_select = _ISA == 1
+	instruction_set_name = "VLE"
+
+op vle = vle16 	| vle32
+
+op vle16(x: vle16_list)
 	syntax = x.syntax
 	image = x.image
 	action = {
@@ -35,7 +50,18 @@ op vle_isa(x: vle)
 		x.action;
 	}
 
+op vle32(x: vle32_list)
+	syntax = x.syntax
+	image = x.image
+	action = {
+		PIA = CIA;
+		CIA = NIA;
+		NIA = NIA + 4;
+		x.action;
+	}
 
+
+// instructions files
 include op "nmp/uisa_fp_instr.nmp"
 include op "nmp/vea_instr.nmp"
 include op "nmp/oea_instr.nmp"
