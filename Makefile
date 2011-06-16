@@ -44,6 +44,7 @@ GFLAGS=\
 ifdef WITH_VLE
 PROC=ppc
 NMP_MAIN = nmp/ppc_vle.nmp nmp/vle.nmp
+GFLAGS += -D
 else
 PROCH=ppc
 NMP_MAIN = nmp/ppc.nmp
