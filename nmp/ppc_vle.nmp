@@ -50,7 +50,7 @@ op vle16(x: vle16_list)
 		x.action;
 	}
 
-op vle32(x: vle32_list)
+op vle32(x: vle32_all)
 	syntax = x.syntax
 	image = x.image
 	action = {
@@ -60,10 +60,50 @@ op vle32(x: vle32_list)
 		x.action;
 	}
 
+op vle32_all = vle32_list | vle_normal | vle_book_e
+
+op vle_normal =
+	  mov_from_cr // mfcr
+	| oea_mfmsr
+	| oea_mfspr
+	| mov_from_spr
+	| oea_mtmsr
+	| oea_mtspr
+	| mov_to_spr
+	| mov_to_cr_xer				// mfcr
+	| mov_to_cr_field			// mtcrf
+	| lb_zero_indexed			// lbzx
+	| lb_zero_update_indexed	// lbzux
+	| lhw_alg_indexed			// lhax
+	| lhw_alg_update_indexed	// lhaux
+	| lhw_zero_indexed			// lhzx
+	| lhw_zero_update_indexed	// lhzux
+	| lw_zero_indexed			// lwzx
+	| lw_zero_update_indexed	// lwzux
+	| lhw_br_index				// lhbrx
+	| lw_br_index				// lwbrx
+	| lwarx
+	| st_byte_indexed				// stbx
+	| st_byte_update_indexed		// stbux
+	| st_half_word_indexed			// sthx
+	| st_half_word_update_indexed	// sthux
+	| st_word_indexed				// stwx
+	| st_word_update_indexed		// stwux
+	| sthw_br_index					// sthbrx
+	| stw_br_index					// stwbrx
+	| stwcx
+
+op vle_book_e =
+	mfdcr |
+	mtdcr |
+	wrtee |
+	wrteei
+
 
 // instructions files
+include op "nmp/vle.nmp"
+include op "nmp/book_e.nmp"
 include op "nmp/uisa_fp_instr.nmp"
 include op "nmp/vea_instr.nmp"
 include op "nmp/oea_instr.nmp"
 include op "nmp/ppc32.nmp"
-include op "nmp/vle.nmp"

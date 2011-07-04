@@ -1,0 +1,44 @@
+/*
+ * PPC2 - BOOK E -- Book E instructions
+ * Copyright (C) 2011, TRACES - IRIT <casse@irit.fr>
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
+ 
+op book_e =
+	mfdcr |
+	mtdcr |
+	wrtee |
+	wrteei
+	
+op mfdcr(rD: index, DCRN: card(10))
+	syntax = format("mfdcr, r%d, %d", rD, DCRN)
+	image = format("011111 %5b %5b %5b 0101000011X", rD, DCRN<4..0>, DCRN<9..5>)
+	action = { }	// not implemented
+
+op mtdcr(DCRN: card(10), rD: index)
+	syntax = format("mtdcr %d, r%d", DCRN, rD)
+	image = format("011111 %5b %5b %5b 0111000011X", rD, DCRN<4..0>, DCRN<9..5>)
+	action = { }	// not implemented
+
+op wrtee(rS: index)
+	syntax = format("wrtee r%d", rS)
+	image = format("011111 %5b XXXX XXXX XX 0010 0000 11X", rS)
+	action = { MSR<MSR_EE..MSR_EE> = GPR[rS]<15..15>; }
+
+op wrteei(E: bit)
+	syntax = format("wrtee %d", E)
+	image = format("011111 XXXX XXXX XX %1b XXXX 0010 1000 11X", E)
+	action = { MSR<MSR_EE..MSR_EE> = E; }

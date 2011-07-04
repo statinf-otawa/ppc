@@ -140,7 +140,6 @@ reg USIA	[ 1 , address ] // 750-755 specific register
 reg UMMCR	[ 2 , long ] // 750-755 specific register
 reg FPR     [ 2 ** REGS , flot ]
 
-// 1.3.3 VEA model registers
 reg TB		[ 1 , double ] // TBL and TBU
 
 // 1.3.4 OEA model registers

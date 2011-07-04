@@ -57,7 +57,8 @@ NMP =\
 	nmp/uisa_fp_instr.nmp  \
 	nmp/vea_instr.nmp \
 	nmp/state.nmp \
-	nmp/ppc32.nmp
+	nmp/ppc32.nmp \
+	nmp/book_e.nmp
 
 
 
@@ -72,6 +73,9 @@ ppc.irg: ppc.nml
 
 src include: ppc.irg
 	$(GLISS_PREFIX)/gep/gep $(GFLAGS) $< -S
+
+check: ppc.irg
+	$(GLISS_PREFIX)/gep/gep $(GFLAGS) $< -S -c
 
 lib: src include/$(PROC)/config.h src/disasm.c
 	(cd src; make -j)
