@@ -1640,7 +1640,9 @@ op int_add_action =   add
 
 // Add Instructions
 op add ( rd : index, ra : REG_IND, rb : REG_IND ,Rc : card (1) , Oe : card(1))
-   syntax = format ( "add r%d,%s,%s", rd, ra.syntax, rb.syntax )
+	syntax = format ( "add%s%s r%d,%s,%s",
+   		if Oe then "o" else "" endif,
+   		if Rc then "." else "" endif, rd, ra.syntax, rb.syntax )
    image  = format ( "011111%5b%s%s%1b100001010%1b", rd, ra.image, rb.image, Oe, Rc )
    action = {
 
@@ -3527,6 +3529,15 @@ op cond_reg_log =   cr_and
                   | mov_cr_field
                   | mov_to_cr_field
                   | mov_to_cr_xer
+                  | isel
+
+op isel(rD: index, rA: REG_IND_ZERO, rB: index, crb: card(5))
+	syntax = format("isel r%d, %s, r%5b, %d", rD, rA, rB, crb)
+	image = format("011111 %5b %s %5b %5b 011110", rD, rA, rB, crb)
+	action = {
+		if CR_BIT(crb) then rD = rA;
+		else rD = rB; endif;
+	}
 
 op cr_and ( crbd : index, crba : index, crbb : index)
    syntax = format ( "crand crb%d,crb%d,crb%d", crbd, crba, crbb )

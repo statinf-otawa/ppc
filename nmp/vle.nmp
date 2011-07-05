@@ -9,10 +9,19 @@ macro VLE_TEST(n) = \
 		endif; \
 	endif
 
-macro VLE_CMPU(a, b) = \
-	if a < b then CR[0]<LT..LT> = 1; \
-	else if a > b then CR[0]<GT..GT> = 1; \
-	else CR[0]<EQ..EQ> = 1; endif; endif
+macro VLE_CMPU(cr, a, b) = \
+	if a < b then cr<LT..LT> = 1; \
+	else if a > b then cr<GT..GT> = 1; \
+	else cr<EQ..EQ> = 1; endif; endif
+
+macro VLE_CMPU0(a, b) = VLE_CMPU(CR[0], a, b)
+
+macro VLE_CMP(cr, a, b) = \
+	if a < b then cr<LT..LT> = 1; \
+	else if a > b then cr<GT..GT> = 1; \
+	else cr<EQ..EQ> = 1; endif; endif
+
+macro VLE_CMP0(a, b) = VLE_CMP(CR[0], a, b)
 
 macro SCI8(F,SCL,UI8) = \
 	switch(SCL) { \
@@ -44,7 +53,7 @@ macro VLE_CHECK_CARRY(res, op1, op2)= \
 macro VLE_DOT(Rc) = (if Rc == 0 then "" else "." endif)
 macro VLE_LK(lk) = (if lk == 0 then "" else "l" endif)
 macro VLE_EXTS(v) = coerce(int(32), v)
-macro VLE_EXTU(v) = coerce(card(32), v)
+macro VLE_EXTZ(v) = coerce(card(32), v)
 macro VLE_CRB(bi) = CR[(31 - bi) >> 2]<((31 - bi) & 0x3)..((31 - bi) & 0x3)>
 
 var IMM[1, word]
@@ -52,6 +61,7 @@ var ctr_ok[1, bit]
 var cond_ok[1, bit]
 var EA[1, card(32)]
 var r[1, card(32)]
+var m[1, card(32)]
 
 mode vle_crb(i: index) = CR[(31-(i)) >> 2]<((31-(i)) & 0x3)..((31-(i)) & 0x3)>
 	syntax = format("crb%d", i)
@@ -220,17 +230,17 @@ op se_cmph(rX: vle_idx, rY: vle_idx)
 op se_cmphl(rX: vle_idx, rY: vle_idx)
 	syntax = format("se_cmphl %s, %s", rX, rY)
 	image = format("000011 11 %s %s", rY, rX)
-	action = { TMP_WORD = VLE_EXTU(rX<15..0>) - VLE_EXTU(rY<15..0>); VLE_TEST(TMP_WORD); }
+	action = { TMP_WORD = VLE_EXTZ(rX<15..0>) - VLE_EXTZ(rY<15..0>); VLE_TEST(TMP_WORD); }
 
 op se_cmpl(rX: vle_idx, rY: vle_idx)
 	syntax = format("se_cmpl %s, %s", rX, rY)
 	image = format("000011 01 %s %s", rY, rX)
-	action = { VLE_CMPU(VLE_EXTU(rX), VLE_EXTU(rY)); }
+	action = { VLE_CMPU0(VLE_EXTZ(rX), VLE_EXTZ(rY)); }
 
 op se_cmpli(rX: vle_idx, OIM5: card(5))
 	syntax = format("se_cmpli %s, %d", rX, OIM5)
 	image = format("001000 1 %5b %s", OIM5, rX)
-	action = { VLE_CMPU(VLE_EXTU(rX), OIM5); }
+	action = { VLE_CMPU0(VLE_EXTZ(rX), OIM5); }
 
 op se_extsb(rX: vle_idx)
 	syntax = format("sr_extsb %s", rX.syntax)
@@ -370,12 +380,12 @@ op se_srawi(rX: vle_idx, UI5: card(5))
 op se_srw(rX: vle_idx, rY: vle_idx)
 	syntax = format("se_srw %s, %s", rX, rY)
 	image = format("010000 00 %s %s", rY, rX)
-	action = { rX = VLE_EXTU(rX) >> rY<4..0>; } 
+	action = { rX = VLE_EXTZ(rX) >> rY<4..0>; } 
 
 op se_srwi(rX: vle_idx, UI5: card(5))
 	syntax = format("se_srwi %s, %d", rX, UI5)
 	image = format("011010 0 %5b %s", UI5, rX)
-	action = { rX = VLE_EXTU(rX) >> UI5; }
+	action = { rX = VLE_EXTZ(rX) >> UI5; }
 
 
 op se_stb(rZ: vle_idx, SD4: card(4), rX: vle_idx)
@@ -387,13 +397,13 @@ op se_stb(rZ: vle_idx, SD4: card(4), rX: vle_idx)
 op se_sth(rZ: vle_idx, SD4: card(4), rX: vle_idx)
 	syntax = format("se_sth %s, %d(%s)", rZ.syntax, SD4, rX.syntax)
 	image = format("1011 %4b %s %s", SD4, rZ.image, rX.image)
-	action = { EA = rX + (VLE_EXTU(SD4) << 1); M16[EA] = rZ; }
+	action = { EA = rX + (VLE_EXTZ(SD4) << 1); M16[EA] = rZ; }
 
 
 op se_stw(rZ: vle_idx, SD4: card(4), rX: vle_idx)
 	syntax = format("se_stw %s, %d(%s)", rZ.syntax, SD4, rX.syntax)
 	image = format("1101 %4b %s %s", SD4, rZ.image, rX.image)
-	action = { EA = rX + (VLE_EXTU(SD4) << 2); M32[EA] = rZ; }
+	action = { EA = rX + (VLE_EXTZ(SD4) << 2); M32[EA] = rZ; }
 
 op se_sub(rX: vle_idx, rY: vle_idx)
 	syntax = format("se_sub %s, %s", rX.syntax, rY.syntax)
@@ -432,7 +442,14 @@ op vle32_list =
 	| e_and2is_
 	| e_andi
 	| e_b
-	| e_bc
+	| e_bc	
+	| e_cmp16i
+	| e_cmph16i
+	| e_cmphl
+	| e_cmphl16i
+	| e_cmpi
+	| e_cmpl16i
+	| e_cmpli
 	| e_crand 	
 	| e_crandc 	
 	| e_creqv 	
@@ -447,17 +464,32 @@ op vle32_list =
 	| e_lhau
 	| e_lhz
 	| e_lhzu
+	| e_li
+	| e_lis
 	| e_lwz
 	| e_lwzu
 	| e_lmw
 	| e_mcrf
+	| e_mulli
+	| e_mull2i
+	| e_or2i
+	| e_or2is
+	| e_ori
+	| e_rlw
+	| e_rlwi
+	| e_rlwimi
+	| e_rlwinm
+	| e_slwi
+	| e_srwi
 	| e_stb
 	| e_stbu
 	| e_sth
 	| e_sthu
 	| e_stw
 	| e_stwu
-	| e_stmw
+	| e_stmw	
+	| e_subfic
+	| e_xori
 
 
 op e_add16i(rD: vle32_idx, rA: vle32_idx, SI: int(16))
@@ -542,6 +574,41 @@ op e_bc(BO32: card(2), BI32: card(4), BD15: int(15), LK: bool)
 		if LK == 1 then LR = CIA + 4; endif;
 	}
 
+op e_cmp16i(rA: vle32_idx, SI: int(16))
+	syntax = format("e_cmp16i %s, %d", rA, SI)
+	image = format("011100 %5b %s 10011 %11b", SI<15..11>, rA, SI<10..0>)
+	action = { VLE_CMP(CR[0], rA, SI); }
+
+op e_cmph16i(rA: vle32_idx, SI: int(16))
+	syntax = format("e_cmph16i %s, %d", rA, SI)
+	image = format("011100 %5b %s 10110 %11b", SI<15..11>, rA, SI<10..0>)
+	action = { VLE_CMP(CR[0], VLE_EXTS(rA<15..0>), VLE_EXTS(SI)); }
+
+op e_cmphl(crD: card(3), rA: vle32_idx, rB: vle32_idx)
+	syntax = format("e_cmphl cr%d, %s, %s", crD, rA, rB)
+	image = format("011111 %3b XX %s %s 0000 1011 10X", crD, rA, rB)
+	action = { VLE_CMPU(CR[crD], VLE_EXTZ(rA<15..0>), VLE_EXTZ(rB<15..0>)); }
+
+op e_cmphl16i(rA: vle32_idx, UI: card(16))
+	syntax = format("e_cmphl16i %s, %d", rA, UI)
+	image = format("011100 %5b %s 10111 %11b", UI<15..11>, rA, UI<10..0>)
+	action = { VLE_CMPU0(VLE_EXTZ(rA<15..0>), UI); }
+
+op e_cmpi(crD32: card(2), rA: vle32_idx, F: bit, SCL: card(2), UI8: card(8))
+	syntax = format("e_cmpi cr%d, %s, %d", crD32, rA, SCI8(F, SCL, UI8))
+	image = format("000110 000 %2b %s 10101 %1b %2b %8b", crD32, rA, F, SCL, UI8)
+	action = { VLE_CMP(CR[crD32], rA, SCI8(F, SCL, UI8)); }
+
+op e_cmpl16i(rA: vle32_idx, UI: card(16))
+	syntax = format("e_cmpl16i %s, %d", rA, UI)
+	image = format("011100 %5b %s 10101 %11b", UI<15..11>, rA, UI<10..0>)
+	action = { VLE_CMPU0(VLE_EXTZ(rA), UI); } 
+
+op e_cmpli(crD32: card(2), rA: vle32_idx, F: bit, SCL: card(2), UI8: card(8))
+	syntax = format("e_cmpli cr%d, %s, %d", crD32, rA, SCI8(F, SCL, UI8))
+	image = format("000110 001 %2b %s 10101 %1b %2b %8b", crD32, rA, F, SCL, UI8)
+	action = { VLE_CMP(CR[crD32], VLE_EXTZ(rA), SCI8(F, SCL, UI8)); }
+
 op e_crand(crbD: vle_crb, crbA: vle_crb, crbB: vle_crb)
 	syntax = format("e_crand %s, %s, %s", crbD.syntax, crbA.syntax, crbB.syntax)
 	image = format("011111 %s %s %s 0100 0000 01X", crbD.image, crbA.image, crbB.image)
@@ -617,6 +684,16 @@ op e_lhzu(rD: index, D: int(8), rA: REG_IND_ZERO)
 	image = format("000110 %5b %s 0000 0001 %8b", rD, rA.image, D)
 	action = { EA = rA + VLE_EXTS(D); GPR[rD] = M16[EA]; GPR[rA.value] = EA;  }
 
+op e_li(rD: vle32_idx, LI20: int(20))
+	syntax = format("e_li %s, %x", rD, LI20)
+	image = format("011100 %s %5b 0 %4b %11b", rD, LI20<15..11>, LI20<19..16>, LI20<10..0>)
+	action = { rD = VLE_EXTS(LI20); }
+
+op e_lis(rD: vle32_idx, UI: card(16))
+	syntax = format("e_lis %s, %x", rD, UI)
+	image = format("011100 %s %5b 11100 %11b", rD, UI<15..11>, UI<10..0>)
+	action = { rD = VLE_EXTZ(UI) << 16; }
+
 op e_lwz(rD: index, D: int(16), rA: REG_IND_ZERO)
 	syntax = format("e_lwz r%d, %d(%s)", rD, D, rA.syntax)
 	image = format("010100 %5b %s %16b", rD, rA.image, D)
@@ -632,6 +709,87 @@ op e_lmw(rD: index, D8: int(8), rA: REG_IND_ZERO)
 	image = format("000110 %5b %s 0000 1000 %8b", rD, rA.image, D8)
 	action = { EA = rA + VLE_EXTS(D8); r = rD; rec; }
 	rec = { if r <= 31 then GPR[r] = M32[EA]; r = r + 1; EA = EA + 4; rec; endif; }
+
+op e_mulli(rD: vle32_idx, rA: vle32_idx, F: bit, SCL: card(2), UI8: card(8))
+	syntax = format("e_mulli %s, %s, %d", rD, rA, SCI8(F, SCL, UI8))
+	image = format("000110 %s %s 10100 %1b %2b %8b", rD, rA, F, SCL, UI8)
+	action = { rD = rA * SCI8(F, SCL, UI8); }
+
+op e_mull2i(rA: vle32_idx, SI: int(16))
+	syntax = format("e_mull2i %s, %d", rA, SI)
+	image = format("011100 %5b %s 10100 %11b", SI<15..11>, rA, SI<10..0>)
+	action = { rA = rA * VLE_EXTS(SI); }
+
+op e_or2i(rD: vle32_idx, UI: card(16))
+	syntax = format("e_or2i %s, %x", rD, UI)
+	image = format("011100 %s %5b 11000 %11b", rD, UI<15..11>, UI<10..0>)
+	action = { rD = rD | UI; }
+
+op e_or2is(rD: vle32_idx, UI: card(16))
+	syntax = format("e_or2is %s, %x", rD, UI)
+	image = format("011100 %s %5b 11010 %11b", rD, UI<15..11>, UI<10..0>)
+	action = { rD = rD | (VLE_EXTZ(UI) << 16); }
+
+op e_ori(rA: vle32_idx, rS: vle32_idx, F: bit, SCL: card(2), UI8: card(8), Rc: bit)
+	syntax = format("e_ori%s %s, %s, %x", VLE_DOT(Rc), rA, rS, SCI8(F, SCL, UI8))
+	image = format("000110 %s %s 1101 %1b %1b %2b %8b", rS, rA, Rc, F, SCL, UI8)
+	action = {
+		TMP_WORD = rS | SCI8(F, SCL, UI8);
+		if Rc == 1 then VLE_TEST(TMP_WORD); endif;
+		rA = TMP_WORD; 
+	}
+
+op e_rlw(rA: vle32_idx, rS: vle32_idx, rB: vle32_idx, Rc: bit)
+	syntax = format("e_rlw%s %s, %s, %s", VLE_DOT(Rc), rA, rS, rB)
+	image = format("011111 %s %s %s 0100 0110 00 %1b", rS, rA, rB, Rc)
+	action = {
+		TMP_WORD = rS <<< rB<4..0>;
+		if Rc == 1 then VLE_TEST(TMP_WORD); endif;
+		rA = TMP_WORD;
+	}
+
+op e_rlwi(rA: vle32_idx, rS: vle32_idx, SH: card(5), Rc: bit)
+	syntax = format("e_rlwi%s %s, %s, %d", VLE_DOT(Rc), rA, rS, SH)
+	image = format("011111 %s %s %5b 0100 1110 00 %1b", rS, rA, SH, Rc)
+	action = {
+		TMP_WORD = rS <<< SH;
+		if Rc == 1 then VLE_TEST(TMP_WORD); endif;
+		rA = TMP_WORD;
+	}
+
+op e_rlwimi(rA: vle32_idx, rS: vle32_idx, SH: card(5), MB: card(5), ME: card(5))
+	syntax = format("e_rlwimi %s, %s, %d, %d, %d", rA, rS, SH, MB, ME)
+	image = format("011101 %s %s %5b %5b %5b 0", rS, rA, SH, MB, ME)
+	action = {
+		m = ((1 << (ME - MB + 1)) - 1) << (31 - ME);
+		rA = ((rA <<< SH) & m) | (rA & ~m);
+	}
+
+op e_rlwinm(rA: vle32_idx, rS: vle32_idx, SH: card(5), MB: card(5), ME: card(5))
+	syntax = format("e_rlwinm %s, %s, %d, %d, %d", rA, rS, SH, MB, ME)
+	image = format("011101 %s %s %5b %5b %5b 1", rS, rA, SH, MB, ME)
+	action = {
+		m = ((1 << (ME - MB + 1)) - 1) << (31 - ME);
+		rA = (rA <<< SH) & m;
+	}
+
+op e_slwi(rA: vle32_idx, rS: vle32_idx, SH: card(5), Rc: bit)
+	syntax = format("e_slwi %s, %s, %d", rA, rS, SH)
+	image = format("011111 %s %s %5b 0000 1110 00 %1b", rS, rA, SH, Rc)
+	action = {
+		TMP_WORD = rS << SH;
+		if Rc == 1 then VLE_TEST(TMP_WORD); endif;
+		rA = TMP_WORD;
+	}
+
+op e_srwi(rA: vle32_idx, rS: vle32_idx, SH: card(5), Rc: bit)
+	syntax = format("e_srwi %s, %s, %d", rA, rS, SH)
+	image = format("011111 %s %s %5b 1000 1110 00 %1b", rS, rA, SH, Rc)
+	action = {
+		TMP_WORD = rS >> SH;
+		if Rc == 1 then VLE_TEST(TMP_WORD); endif;
+		rA = TMP_WORD;
+	}
 
 op e_stb(rS: index, D: int(16), rA: REG_IND_ZERO)
 	syntax = format("e_stb r%d, %d(%s)", rS, D, rA.syntax)
@@ -668,4 +826,27 @@ op e_stmw(rS: index, D8: int(8), rA: REG_IND_ZERO)
 	image = format("000110 %5b %s 0000 1001 %8b", rS, rA.image, D8)
 	action = { EA = rA + VLE_EXTS(D8); r = rS; rec; }
 	rec = { if r <= 31 then M32[EA] = GPR[r]; r = r + 1; EA = EA + 4; rec; endif; }
+
+op e_subfic(rD: vle32_idx, rA: vle32_idx, F: bit, SCL: card(2), UI8: card(8), Rc: bit)
+	syntax = format("e_subfic%s %s, %s, %d", VLE_DOT(Rc),rD, rA, SCI8(F, SCL, UI8))
+	image = format("000110 %s %s 1011 %1b %1b %2b %8b", rD, rA, Rc, F, SCL, UI8)
+	action = {
+		IMM = -SCI8(F, SCL, UI8);
+		TMP_WORD = rA + IMM;
+		if Rc == 1 then VLE_TEST(TMP_WORD); endif;
+		rD = TMP_WORD;
+		VLE_CHECK_CARRY(TMP_WORD, rA, IMM);
+	}
+
+op e_xori(rA: vle32_idx, rS: vle32_idx, F: bit, SCL: card(2), UI8: card(8), Rc: bit)
+	syntax = format("e_xori%s %s, %s, %x", VLE_DOT(Rc), rA, rS, SCI8(F, SCL, UI8))
+	image = format("000110 %s %s 1110 %1b %1b %2b %8b", rS, rA, Rc, F, SCL, UI8)
+	action = {
+		TMP_WORD = rS ^ SCI8(F, SCL, UI8);
+		VLE_TEST(TMP_WORD);
+		rA = TMP_WORD;
+	}
+	
+
+
 

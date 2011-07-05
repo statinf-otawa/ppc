@@ -63,26 +63,84 @@ op vle32(x: vle32_all)
 op vle32_all = vle32_list | vle_normal | vle_book_e
 
 op vle_normal =
-	  mov_from_cr // mfcr
-	| oea_mfmsr
-	| oea_mfspr
+	  add							// add, add., addo, addo.
+	| add_carrying					// addc
+	| add_carry_cr_update			// addc.
+	| add_carry_overflow			// addco
+	| add_carry_overflow_cr_update	// addco.
+	| add_extend					// adde
+	| add_extend_cr_update			// adde.
+	| add_extend_overflow			// addeo
+	| add_extd_overflow_cr_upd		// addeo.
+	| and
+	| and_cr_update					// and.
+	| cmp
+	| cmp_log
+	| cntlzw
+	| cntlzw_cr_update				// cntlzw.
+	| divw
+	| divw_cr_update				// divw.
+	| divw_overflow					// divwo
+	| divw_overflow_cr_upd			// divwo.
+	| divwus						// divwu
+	| divwus_cr_update				// divwu.
+	| divwus_overflow				// divwuo
+	| divwus_overflow_cr_upd		// divwuo.
+	| eqv
+	| eqv_cr_update					// eqv.
+	| extsb
+	| extsb_cr_update				// extsb.
+	| extsh
+	| extsh_cr_update				// extsh.
+	| isel
+	| lb_zero_indexed				// lbzx
+	| lb_zero_update_indexed		// lbzux
+	| lhw_alg_indexed				// lhax
+	| lhw_alg_update_indexed		// lhaux
+	| lhw_br_index					// lhbrx
+	| lhw_zero_indexed				// lhzx
+	| lhw_zero_update_indexed		// lhzux
+	| lw_zero_indexed				// lwzx
+	| lw_zero_update_indexed		// lwzux
+	| lw_br_index					// lwbrx
+	| lwarx
 	| mov_from_spr
+	| mov_to_cr_field				// mtcrf
+	| mov_to_cr_xer					// mfcr
+	| mov_to_spr
+	| mult_hi						// mulhw
+	| mult_hi_cr_update				// mulhw.
+	| mult_hi_us					// mulhwu
+	| mult_hi_us_cr_update			// mulhwu.
+	| mult_lw						// mulw
+	| mult_lw_cr_update				// mulw.
+	| mult_lw_overflow				// mullwo
+	| mult_lw_overflow_cr_upd		// mullwo.
+	| nand
+	| nand_cr_update				// nand.
+	| neg
+	| neg_cr_update					// neg.
+	| neg_overflow					// nego
+	| neg_overflow_cr_upd			// nego.
+	| nor
+	| nor_cr_update					// nor.
+	| oea_dcbi						// dcbi
+	| oea_mfmsr
+	| oea_mfspr	
 	| oea_mtmsr
 	| oea_mtspr
-	| mov_to_spr
-	| mov_to_cr_xer				// mfcr
-	| mov_to_cr_field			// mtcrf
-	| lb_zero_indexed			// lbzx
-	| lb_zero_update_indexed	// lbzux
-	| lhw_alg_indexed			// lhax
-	| lhw_alg_update_indexed	// lhaux
-	| lhw_zero_indexed			// lhzx
-	| lhw_zero_update_indexed	// lhzux
-	| lw_zero_indexed			// lwzx
-	| lw_zero_update_indexed	// lwzux
-	| lhw_br_index				// lhbrx
-	| lw_br_index				// lwbrx
-	| lwarx
+	| or
+	| or_cr_update					// or.
+	| orc
+	| orc_cr_update					// orc.
+	| slw
+	| slw_cr_update					// slw.
+	| sraw
+	| sraw_cr_update				// sraw.
+	| srawi
+	| srawi_cr_update				// srawi
+	| srw
+	| srw_cr_update					// srw.
 	| st_byte_indexed				// stbx
 	| st_byte_update_indexed		// stbux
 	| st_half_word_indexed			// sthx
@@ -92,12 +150,39 @@ op vle_normal =
 	| sthw_br_index					// sthbrx
 	| stw_br_index					// stwbrx
 	| stwcx
+	| sub
+	| sub_cr_update					// subf.
+	| sub_overflow_enable			// subfo
+	| sub_crup_overen				// subfo.
+	| sub_carrying					// subfc
+	| sub_carry_cr_update			// subfc.
+	| sub_carry_overflow			// subfco
+	| sub_carry_overflow_cr_update	// subfco.
+	| mov_from_cr 					// mfcr
+	| tw
+	| vea_dcba						// dcba
+	| vea_dcbf						// dcbf
+	| vea_dcbst						// dcbst
+	| vea_dcbt						// dcbt
+	| vea_dcbtst					// dcbtst	
+	| vea_dcbz						// dcbz
+	| vea_icbi						// icbi
+	| xor
+	| xor_cr_update					// xor.
+
 
 op vle_book_e =
-	mfdcr |
-	mtdcr |
-	wrtee |
-	wrteei
+	  icbt
+	| mbar
+	| mfdcr
+	| mtdcr
+	| tlbivax
+	| tlbre
+	| tlbsx
+	| tlbsync
+	| tlbwe
+	| wrtee
+	| wrteei
 
 
 // instructions files
