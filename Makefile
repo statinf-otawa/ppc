@@ -4,7 +4,7 @@
 GLISS_PREFIX=../gliss2
 WITH_DISASM	= 1	# comment it to prevent disassembler building
 WITH_SIM	= 1	# comment it to prevent simulator building
-WITH_VLE	= 1	# comment it to prevent use of VLE
+#WITH_VLE	= 1	# comment it to prevent use of VLE
 
 MEMORY=vfast_mem
 PROFILE=PPC.profile # Here goes the path of your profiling file
@@ -46,7 +46,7 @@ PROC=ppc
 NMP_MAIN = nmp/ppc_vle.nmp nmp/vle.nmp
 GFLAGS += -D
 else
-PROCH=ppc
+PROC=ppc
 NMP_MAIN = nmp/ppc.nmp
 endif
 
