@@ -66,6 +66,7 @@ var m[1, card(32)]
 mode vle_crb(i: index) = CR[(31-(i)) >> 2]<((31-(i)) & 0x3)..((31-(i)) & 0x3)>
 	syntax = format("crb%d", i)
 	image = format("%5b", i)
+	index = (31-(i)) >> 2
 
 
 // ===== VLE 16-bits ======
@@ -80,6 +81,7 @@ op vle16_list =
 	| se_bclri
 	| se_bctr
 	| se_bgeni
+	| se_blr
 	| se_bmski
 	| se_bseti
 	| se_btsti
@@ -137,23 +139,23 @@ mode vle_ar(idx: card(4)) = GPR[idx + 8]
 	image = format("%4b", idx)
 	index = idx + 8
 
-op se_add(rx: vle_idx, ry: vle_idx)
-	syntax = format("se_add %s,%s", rx.syntax, ry.syntax)
-	image = format("000001 00 %s %s", rx.image, ry.image)
-	action = { rx = rx + ry; }
+op se_add(rX: vle_idx, rY: vle_idx)
+	syntax = format("se_add %s,%s", rX, rY)
+	image = format("000001 00 %s %s", rX, rY)
+	action = { rX = rX + rY; }
 
-op se_addi(OIM5: card(5), RX: vle_idx)
-	syntax = format("se_addi %s, %d", RX.syntax, VLE_OFFSET(OIM5))
-	image = format("001000 0 %5b %s", OIM5, RX.image)
-	action = { RX = RX + VLE_OFFSET(OIM5); }
+op se_addi(OIM5: card(5), rX: vle_idx)
+	syntax = format("se_addi %s, %d", rX, VLE_OFFSET(OIM5))
+	image = format("001000 0 %5b %s", OIM5, rX)
+	action = { rX = rX + VLE_OFFSET(OIM5); }
 
-op se_and(Rc: bit, Rx: vle_idx, Ry: vle_idx)
-	syntax = format("e_and%s %s, %s ", VLE_DOT(Rc), Rx.syntax, Ry.syntax)
-	image = format("010001 1 %1b %s %s", Rc, Rx.image, Ry.image)
+op se_and(Rc: bit, rX: vle_idx, rY: vle_idx)
+	syntax = format("e_and%s %s, %s ", VLE_DOT(Rc), rX, rY)
+	image = format("010001 1 %1b %s %s", Rc, rX, rY)
 	action = {
-		TMP_WORD = Rx & Ry;
+		TMP_WORD = rX & rY;
 		if Rc then VLE_TEST(TMP_WORD); endif;
-		Rx = TMP_WORD;
+		rX = TMP_WORD;
 	}
 
 op se_andi(UI5: card(5), rX: vle_idx)
@@ -196,6 +198,14 @@ op se_bgeni(UI5: card(5), rX: vle_idx)
 	syntax = format("bgeni %s, %d", rX.syntax, UI5)
 	image = format("011000 1 %5b %s", UI5, rX.image)
 	action = { rX = rX | (1 << (31 - UI5)); }
+
+op se_blr(LK: bit)
+	syntax = format("blr%s", VLE_LK(LK))
+	image = format("0000 0000 0000 010%1b", LK)
+	action = {
+		NIA = LR & ~0x3;
+		if LK then LR = CIA + 2; endif;
+	}
 
 op se_bmski(rX: vle_idx, UI5: card(5))
 	syntax = format("se_bmski %s, %d", rX.syntax, UI5)
@@ -762,7 +772,7 @@ op e_rlwimi(rA: vle32_idx, rS: vle32_idx, SH: card(5), MB: card(5), ME: card(5))
 	image = format("011101 %s %s %5b %5b %5b 0", rS, rA, SH, MB, ME)
 	action = {
 		m = ((1 << (ME - MB + 1)) - 1) << (31 - ME);
-		rA = ((rA <<< SH) & m) | (rA & ~m);
+		rA = ((rS <<< SH) & m) | (rA & ~m);
 	}
 
 op e_rlwinm(rA: vle32_idx, rS: vle32_idx, SH: card(5), MB: card(5), ME: card(5))
@@ -770,7 +780,7 @@ op e_rlwinm(rA: vle32_idx, rS: vle32_idx, SH: card(5), MB: card(5), ME: card(5))
 	image = format("011101 %s %s %5b %5b %5b 1", rS, rA, SH, MB, ME)
 	action = {
 		m = ((1 << (ME - MB + 1)) - 1) << (31 - ME);
-		rA = (rA <<< SH) & m;
+		rA = (rS <<< SH) & m;
 	}
 
 op e_slwi(rA: vle32_idx, rS: vle32_idx, SH: card(5), Rc: bit)
@@ -843,7 +853,7 @@ op e_xori(rA: vle32_idx, rS: vle32_idx, F: bit, SCL: card(2), UI8: card(8), Rc: 
 	image = format("000110 %s %s 1110 %1b %1b %2b %8b", rS, rA, Rc, F, SCL, UI8)
 	action = {
 		TMP_WORD = rS ^ SCI8(F, SCL, UI8);
-		VLE_TEST(TMP_WORD);
+		if Rc then VLE_TEST(TMP_WORD); endif;
 		rA = TMP_WORD;
 	}
 	

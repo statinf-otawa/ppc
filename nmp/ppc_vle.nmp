@@ -10,7 +10,7 @@ let M_is_little = "MSR & (0x01<<MSR_LE)" // MSR should be correctly initialized 
 let gliss_isize = "32,16"
 
 // pseudo-IS selector
-reg _ISA[1,card(1)]
+reg VLE[1,card(1)]
 
 op multi = normal_isa | vle_isa
 
@@ -25,7 +25,7 @@ op normal_isa(x: instrs32)
 		NIA = NIA + 4;
 		x.action;
 	}
-	instruction_set_select = _ISA == 0
+	instruction_set_select = VLE == 0
 	instruction_set_name = "PPC"
 
 op instrs32  =    uisa_instr
@@ -35,7 +35,7 @@ op instrs32  =    uisa_instr
 
 // VLE instruction set
 op vle_isa(x: vle)
-	instruction_set_select = _ISA == 1
+	instruction_set_select = VLE == 1
 	instruction_set_name = "VLE"
 
 op vle = vle16 	| vle32

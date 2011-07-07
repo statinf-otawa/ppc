@@ -4,7 +4,7 @@
 GLISS_PREFIX=../gliss2
 WITH_DISASM	= 1	# comment it to prevent disassembler building
 WITH_SIM	= 1	# comment it to prevent simulator building
-#WITH_VLE	= 1	# comment it to prevent use of VLE
+WITH_VLE	= 1	# comment it to prevent use of VLE
 
 MEMORY=vfast_mem
 PROFILE=PPC.profile # Here goes the path of your profiling file
@@ -88,7 +88,10 @@ ppc-sim:
 
 include/$(PROC)/config.h: config.tpl
 	test -d include/$(PROC) || mkdir include/$(PROC)
-	cp config.tpl include/$(PROC)/config.h
+	cp config.tpl $@
+ifdef WITH_VLE
+	echo "#define PPC_WITH_VLE" >> $@
+endif
 
 src/disasm.c: ppc.irg
 	$(GLISS_PREFIX)/gep/gliss-disasm $< -o $@ -c
