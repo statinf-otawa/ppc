@@ -1,4 +1,7 @@
 # Makefile for the PowerPC architecture using GLISS V2
+# configuration
+#	MINGW_LINUX	use MINGW compiler
+#	NO_SYSCALL	do not implements system calls
 
 # configuration
 GLISS_PREFIX=../gliss2
@@ -13,6 +16,18 @@ SYSCALL=syscall-linux
 
 # one of decode, decode32_inf_cache, decode32_fixed_cache, decode32_lru_cache, decode32_trace, decode32_dtrace
 DECODER=decode32_dtrace
+
+
+# multi-OS support
+ifdef MINGW_LINUX
+export CC=i586-mingw32msvc-gcc
+export AR=i586-mingw32msvc-ar
+export RANLIB=i586-mingw32msvc-ranlib
+export NO_SYSCALL=1
+else
+export AR=ar
+export RANLIB=ranlib
+endif
 
 # files
 GOALS=
@@ -33,13 +48,20 @@ CFLAGS=\
 GFLAGS=\
 	-m mem:$(MEMORY) \
 	-m loader:$(LOADER) \
-	-m syscall:$(SYSCALL) \
 	-m sysparm:sysparm-reg32 \
 	-m code:code \
 	-m exception:extern/exception \
 	-m fpi:extern/fpi \
-	-m env:linux_env \
 	-a disasm.c
+
+#	-m syscall:$(SYSCALL)
+#	-m env:linux_env
+
+ifdef NO_SYSCALL
+GFLAGS += -m syscall:syscall-embedded -m env:env-embedded
+else
+GFLAGS += -m syscall:syscall-linux 	-m env:linux_env
+endif
 
 ifdef WITH_VLE
 PROC=ppc
@@ -74,10 +96,10 @@ ppc.irg: ppc.nml
 src include: ppc.irg
 	$(GLISS_PREFIX)/gep/gep $(GFLAGS) $< -S
 
-check: ppc.irg include/$(PROC)/config.h 
+check: include/$(PROC)/config.h ppc.irg  
 	$(GLISS_PREFIX)/gep/gep $(GFLAGS) $< -S -c
 
-lib: src src/disasm.c
+lib: include/$(PROC)/config.h src src/disasm.c
 	(cd src; make -j)
 
 ppc-disasm:
@@ -87,7 +109,7 @@ ppc-sim:
 	cd sim; make -j3
 
 include/$(PROC)/config.h: config.tpl
-	test -d include/$(PROC) || mkdir include/$(PROC)
+	test -d include/$(PROC) || mkdir -p include/$(PROC)
 	cp config.tpl $@
 ifdef WITH_VLE
 	echo "#define PPC_WITH_VLE" >> $@
