@@ -74,10 +74,10 @@ ppc.irg: ppc.nml
 src include: ppc.irg
 	$(GLISS_PREFIX)/gep/gep $(GFLAGS) $< -S
 
-check: ppc.irg
+check: ppc.irg include/$(PROC)/config.h 
 	$(GLISS_PREFIX)/gep/gep $(GFLAGS) $< -S -c
 
-lib: src include/$(PROC)/config.h src/disasm.c
+lib: src src/disasm.c
 	(cd src; make -j)
 
 ppc-disasm:
