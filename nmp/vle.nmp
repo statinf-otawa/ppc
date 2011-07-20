@@ -102,6 +102,8 @@ op vle16_list =
 	| se_mfar
 	| se_mfctr
 	| se_mflr
+	| se_mr
+	| se_mtar
 	| se_mtctr
 	| se_mtlr
 	| se_mullw
@@ -127,7 +129,7 @@ op vle16_list =
 	
 
 macro vle_index(i) = \
-	if i < 8 then i else i + 16 endif
+	if i < 8 then i else coerce(card(32), i) + 16 endif
 
 mode vle_idx(idx: card(4)) = GPR[vle_index(idx)]
 	syntax = format("r%d", vle_index(idx))
@@ -308,7 +310,7 @@ op se_mflr(rX: vle_idx)
 	action = { rX = LR; }
 
 op se_mr(rX: vle_idx, rY: vle_idx)
-	syntax = format("vle_mr %s, %s", rX.syntax, rY.syntax)
+	syntax = format("se_mr %s, %s", rX.syntax, rY.syntax)
 	image = format("000000 01 %s %s", rY.image, rX.image)
 	action = { rX = rY; }
 
@@ -398,20 +400,20 @@ op se_srwi(rX: vle_idx, UI5: card(5))
 	action = { rX = VLE_EXTZ(rX) >> UI5; }
 
 
-op se_stb(rZ: vle_idx, SD4: card(4), rX: vle_idx)
+op se_stb(rZ: vle_idx, SD4: int(4), rX: vle_idx)
 	syntax = format("se_stb %s, %d(%s)", rZ.syntax, SD4, rX.syntax)
 	image = format("1001 %4b %s %s", SD4, rZ.image, rX.image)
 	action = { EA = rX + SD4; M[EA] = rZ; }
 
 
-op se_sth(rZ: vle_idx, SD4: card(4), rX: vle_idx)
-	syntax = format("se_sth %s, %d(%s)", rZ.syntax, SD4, rX.syntax)
+op se_sth(rZ: vle_idx, SD4: int(4), rX: vle_idx)
+	syntax = format("se_sth %s, %d(%s)", rZ.syntax, VLE_EXTZ(SD4) << 1, rX.syntax)
 	image = format("1011 %4b %s %s", SD4, rZ.image, rX.image)
 	action = { EA = rX + (VLE_EXTZ(SD4) << 1); M16[EA] = rZ; }
 
 
-op se_stw(rZ: vle_idx, SD4: card(4), rX: vle_idx)
-	syntax = format("se_stw %s, %d(%s)", rZ.syntax, SD4, rX.syntax)
+op se_stw(rZ: vle_idx, SD4: int(4), rX: vle_idx)
+	syntax = format("se_stw %s, %d(%s)", rZ.syntax, VLE_EXTZ(SD4) << 2, rX.syntax)
 	image = format("1101 %4b %s %s", SD4, rZ.image, rX.image)
 	action = { EA = rX + (VLE_EXTZ(SD4) << 2); M32[EA] = rZ; }
 
