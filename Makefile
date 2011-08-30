@@ -1,36 +1,41 @@
 # Makefile for the PowerPC architecture using GLISS V2
 
 # configuration
-GLISS_PREFIX=../gliss2
-WITH_DISASM	= 1	# comment it to prevent disassembler building
-WITH_SIM	= 1	# comment it to prevent simulator building
-WITH_VLE	= 1	# comment it to prevent use of VLE
+GLISS_PREFIX	=../gliss2
+WITH_DISASM		= 1	# comment it to prevent disassembler building
+WITH_SIM		= 1	# comment it to prevent simulator building
+WITH_VLE		= 1	# comment it to prevent use of VLE
 
 MEMORY=vfast_mem
 PROFILE=PPC.profile # Here goes the path of your profiling file
 LOADER=old_elf
 SYSCALL=syscall-linux
 
-# one of decode, decode32_inf_cache, decode32_fixed_cache, decode32_lru_cache, decode32_trace, decode32_dtrace
 DECODER=decode32_dtrace
 
-# files
-GOALS=
+# goals definition
+GOALS		=
+SUBDIRS		=	src
+CLEAN		=	ppc.nml ppc.irg
+DISTCLEAN	=	include src
+
 ifdef WITH_DISASM
-GOALS+=ppc-disasm
+GOALS		+=	ppc-disasm
+SUBDIRS		+=	disasm
+DISTCLEAN	+= disasm
 endif
+
 ifdef WITH_SIM
-GOALS+=ppc-sim
+GOALS		+=	ppc-sim
+SUBDIRS		+=	sim
+DISTCLEAN	+=	sim
 endif
 
-SUBDIRS=src sim disasm
-CLEAN=ppc.nml ppc.irg
-DISTCLEAN=include src disasm sim
 
-CFLAGS=\
+CFLAGS = \
 	-fno-jump-table
 
-GFLAGS=\
+GFLAGS = \
 	-m mem:$(MEMORY) \
 	-m loader:$(LOADER) \
 	-m syscall:$(SYSCALL) \

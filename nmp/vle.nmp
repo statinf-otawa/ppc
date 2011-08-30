@@ -78,6 +78,7 @@ op vle16_list =
 	| se_andi
 	| se_andc
 	| se_b
+	| se_bc
 	| se_bclri
 	| se_bctr
 	| se_bgeni
@@ -576,7 +577,7 @@ op e_b(BD24: int(24), LK: bool)
 	}
 
 op e_bc(BO32: card(2), BI32: card(4), BD15: int(15), LK: bool)
-	syntax = format("e_bc%s %x, %x %08d", VLE_LK(LK), BO32, BI32, __IADDR + (VLE_EXTS(BD15) << 1))
+	syntax = format("e_bc%s %x, %x %08x", VLE_LK(LK), BO32, BI32, __IADDR + (VLE_EXTS(BD15) << 1))
 	image = format("011110 1000 %2b %4b %15b %1b", BO32, BI32, BD15, LK)
 	action = {
 		if BO32<1..1> then CTR = CTR - 1; endif;
