@@ -5,6 +5,7 @@ GLISS_PREFIX	=../gliss2
 WITH_DISASM		= 1	# comment it to prevent disassembler building
 WITH_SIM		= 1	# comment it to prevent simulator building
 WITH_VLE		= 1	# comment it to prevent use of VLE
+#WITH_DYNLIB	= 1	# uncomment it to build dynamicaly linkable library
 
 MEMORY=vfast_mem
 PROFILE=PPC.profile # Here goes the path of your profiling file
@@ -31,6 +32,9 @@ SUBDIRS		+=	sim
 DISTCLEAN	+=	sim
 endif
 
+ifdef WITH_DYNLIB
+REC_FLAGS = WITH_DYNLIB=1
+endif
 
 CFLAGS = \
 	-fno-jump-table
@@ -83,7 +87,7 @@ check: ppc.irg
 	$(GLISS_PREFIX)/gep/gep $(GFLAGS) $< -S -c
 
 lib: src include/$(PROC)/config.h src/disasm.c
-	(cd src; make -j)
+	(cd src; make -j $(REC_FLAGS))
 
 ppc-disasm:
 	cd disasm; make -j3
