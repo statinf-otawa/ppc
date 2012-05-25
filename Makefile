@@ -6,13 +6,13 @@ WITH_DISASM		= 1	# comment it to prevent disassembler building
 WITH_SIM		= 1	# comment it to prevent simulator building
 WITH_VLE		= 1	# comment it to prevent use of VLE
 #WITH_DYNLIB	= 1	# uncomment it to build dynamicaly linkable library
+#WITH_OSEMUL	= 1 # uncomment it to use OS emulation of system calls (only with Unix)
 
-MEMORY=vfast_mem
-PROFILE=PPC.profile # Here goes the path of your profiling file
-LOADER=old_elf
-SYSCALL=syscall-linux
+MEMORY=vfast_mem			# select here the memory module
+LOADER=old_elf				# select here the loaded module
+PROFILE=PPC.profile 		# Here goes the path of your profiling file
 
-DECODER=decode32_dtrace
+DECODER=decode32_dtrace		# modify this with CAUTION
 
 # goals definition
 GOALS		=
@@ -36,6 +36,14 @@ ifdef WITH_DYNLIB
 REC_FLAGS = WITH_DYNLIB=1
 endif
 
+ifdef WITH_OSEMUL
+SYSCALL=syscall-linux
+ENV=linux-env
+else
+SYSCALL=syscall-embedded
+ENV=void_env
+endif
+
 CFLAGS = \
 	-fno-jump-table
 
@@ -47,7 +55,8 @@ GFLAGS = \
 	-m code:code \
 	-m exception:extern/exception \
 	-m fpi:extern/fpi \
-	-m env:linux_env \
+	-m env:$(ENV) \
+	-m vea:extern/vea \
 	-a disasm.c
 
 ifdef WITH_VLE

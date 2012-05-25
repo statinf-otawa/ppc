@@ -256,22 +256,22 @@ op se_cmpli(rX: vle_idx, OIM5: card(5))
 	action = { VLE_CMPU0(VLE_EXTZ(rX), OIM5); }
 
 op se_extsb(rX: vle_idx)
-	syntax = format("sr_extsb %s", rX.syntax)
+	syntax = format("se_extsb %s", rX.syntax)
 	image = format("000000 001101 %s", rX.image)
 	action = { if rX<7..7> then rX = rX | 0xffffff00; endif; }
 
 op se_extsh(rX: vle_idx)
-	syntax = format("sr_extsh %s", rX.syntax)
+	syntax = format("se_extsh %s", rX.syntax)
 	image = format("000000 001111 %s", rX.image)
 	action = { if rX<15..15> then rX = rX | 0xffff0000; endif; }
 
 op se_extzb(rX: vle_idx)
-	syntax = format("sr_extzb %s", rX.syntax)
+	syntax = format("se_extzb %s", rX.syntax)
 	image = format("000000 001100 %s", rX.image)
 	action = { rX = rX & 0xffffff00; }
 
 op se_extzh(rX: vle_idx)
-	syntax = format("sr_extzh %s", rX.syntax)
+	syntax = format("se_extzh %s", rX.syntax)
 	image = format("000000 001110 %s", rX.image)
 	action = { rX = rX & 0xffff0000; }
 
@@ -457,6 +457,7 @@ op vle32_list =
 	| e_b
 	| e_bc	
 	| e_cmp16i
+	| e_cmph
 	| e_cmph16i
 	| e_cmphl
 	| e_cmphl16i
@@ -596,6 +597,11 @@ op e_cmph16i(rA: vle32_idx, SI: int(16))
 	syntax = format("e_cmph16i %s, %d", rA, SI)
 	image = format("011100 %5b %s 10110 %11b", SI<15..11>, rA, SI<10..0>)
 	action = { VLE_CMP(CR[0], VLE_EXTS(rA<15..0>), VLE_EXTS(SI)); }
+
+op e_cmph(crD: card(3), rA: vle32_idx, rB: vle32_idx)
+	syntax = format("e_cmph cr%d, %s, %s", crD, rA, rB)
+	image = format("011111 %3b XX %s %s 0000 0011 10X", crD, rA, rB)
+	action = { VLE_CMP(CR[crD], VLE_EXTS(rA<15..0>), VLE_EXTS(rB<15..0>)); }
 
 op e_cmphl(crD: card(3), rA: vle32_idx, rB: vle32_idx)
 	syntax = format("e_cmphl cr%d, %s, %s", crD, rA, rB)
@@ -787,7 +793,7 @@ op e_rlwinm(rA: vle32_idx, rS: vle32_idx, SH: card(5), MB: card(5), ME: card(5))
 	}
 
 op e_slwi(rA: vle32_idx, rS: vle32_idx, SH: card(5), Rc: bit)
-	syntax = format("e_slwi %s, %s, %d", rA, rS, SH)
+	syntax = format("e_slwi%s %s, %s, %d", VLE_DOT(Rc), rA, rS, SH)
 	image = format("011111 %s %s %5b 0000 1110 00 %1b", rS, rA, SH, Rc)
 	action = {
 		TMP_WORD = rS << SH;
@@ -796,7 +802,7 @@ op e_slwi(rA: vle32_idx, rS: vle32_idx, SH: card(5), Rc: bit)
 	}
 
 op e_srwi(rA: vle32_idx, rS: vle32_idx, SH: card(5), Rc: bit)
-	syntax = format("e_srwi %s, %s, %d", rA, rS, SH)
+	syntax = format("e_srwi%s %s, %s, %d", VLE_DOT(Rc), rA, rS, SH)
 	image = format("011111 %s %s %5b 1000 1110 00 %1b", rS, rA, SH, Rc)
 	action = {
 		TMP_WORD = rS >> SH;

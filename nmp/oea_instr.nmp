@@ -48,30 +48,54 @@ op oea_instr ( x: oea_instr_action)
 	otawa_kind = x.otawa_kind
 	
 
-op oea_instr_action = oea_cache_man_instr       // cache management instructions
-                    | oea_proc_control_instr    // processor control instructions
+op oea_instr_action = //oea_cache_man_instr       // cache management instructions
+                 
+                      oea_proc_control_instr    // processor control instructions
                     | oea_seg_reg_man_instr     // segment register manipulation instructions
                     | oea_sys_link_instr        // system linkage instructions (without sc)
                     | oea_tlb_man_instr         // lookaside buffer management instructions
+                    | mfapidi
+
+
+op mfapidi(rd: REG_IND, ra: REG_IND)
+	syntax = format("mfapidi %s, %s", rd, ra)
+	image = format("011111 %s %s XXXXX 0100010011 X", rd, ra)
+	action = {
+		// micro-architecture dependent action
+		// code below ensure only register access
+		TMP_EA = ra;
+		rd = TMP_WORD;
+	}
+
 
 // ------------------------------------------------------------------------- //
 // 2.1 cache management instructions
 // ------------------------------------------------------------------------- //
-op  oea_cache_man_instr( x : oea_cache_man_instr_action )
-   syntax = x.syntax
-   image  = x.image
-   action = { x.action; }
-   otawa_kind = CACHE
+//op  oea_cache_man_instr( x : oea_cache_man_instr_action )
+//   syntax = x.syntax
+//   image  = x.image
+//   action = { x.action; }
+//   otawa_kind = CACHE
 
-op oea_cache_man_instr_action = oea_dcbi
+//op oea_cache_man_instr_action = oea_dcbf | oea_dcbi
 
-op oea_dcbi ( ra: REG_IND_ZERO, rb: REG_IND )
-	syntax = format ( "dcbi %s,%s", ra.syntax, rb.syntax )
-	image  = format ( "01111100000%s%s01110101100", ra.image, rb.image )
-	action = {
-		TMP_EA = ra + rb;
-		}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), END_REG)
+//op oea_dcbf(ra: REG_IND_ZERO, rb: REG_IND)
+//	syntax = format("dcbf %s, %s", ra, rb)
+//	image = format("0111 11XX XXX %s %s 000 1010 110X", ra, rb)
+//	action = {
+//		TMP_EA = ra + rb;
+//		"FlushDataCacheBlock"(TMP_EA);
+//	}
+	
+//op oea_dcbi ( ra: REG_IND_ZERO, rb: REG_IND )
+//	syntax = format("dcbi %s, %s", ra, rb)
+//	image  = format("0111 11XX XXX %s %s 011 1010 110X", ra, rb)
+//	action = {
+//		TMP_EA = ra + rb;
+//		"InvalidateDataCacheBlock"(TMP_EA);
+//	}
+//   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), END_REG)
+
 
 // ------------------------------------------------------------------------- //
 // 2.2 processor control instructions
