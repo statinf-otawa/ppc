@@ -261,3 +261,6 @@ reg TMP_SWORD_A0 [ 1 , int ( 8 ) ]
 reg fp_clear[1, card(32)]
 // /HKC-SET
 
+
+// Useful canonicals
+//canon card(32) "fpi_testexcept"(card(32))

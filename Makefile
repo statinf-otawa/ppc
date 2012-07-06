@@ -73,6 +73,7 @@ NMP =\
 	nmp/ppc32.nmp \
 	nmp/oea_instr.nmp \
 	nmp/uisa_fp_instr.nmp  \
+	nmp/essp_fp_instr.nmp  \
 	nmp/vea_instr.nmp \
 	nmp/state.nmp \
 	nmp/ppc32.nmp \

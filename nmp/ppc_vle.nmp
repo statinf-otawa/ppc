@@ -31,6 +31,7 @@ op normal_isa(x: instrs32)
 op instrs32  =    uisa_instr
                 | vea_instr
                 | oea_instr
+                | essp_fp_instr
 
 
 // VLE instruction set
@@ -214,6 +215,7 @@ op vle_book_e =
 include op "nmp/vle.nmp"
 include op "nmp/book_e.nmp"
 include op "nmp/uisa_fp_instr.nmp"
+include op "nmp/essp_fp_instr.nmp"
 include op "nmp/vea_instr.nmp"
 include op "nmp/oea_instr.nmp"
 include op "nmp/ppc32.nmp"

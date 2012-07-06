@@ -66,6 +66,7 @@ op mfapidi(rd: REG_IND, ra: REG_IND)
 		TMP_EA = ra;
 		rd = TMP_WORD;
 	}
+	otawa_kind = CONTROL
 
 
 // ------------------------------------------------------------------------- //
