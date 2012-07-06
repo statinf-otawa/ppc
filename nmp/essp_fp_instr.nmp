@@ -116,22 +116,22 @@ macro clearSPEFSCR(x) = \
 	
 	
 macro FP_UPDATE_FLAGS = \
-	if "fpi_testexcept"(@"FPI_INEXACT") then \
+	if "fpi_testexcept"("FPI_INEXACT") then \
 		setSPEFSCR(FP_FINV); \
 	endif; \
-	if "fpi_testexcept"(@"FPI_DIVBYZERO") then \
+	if "fpi_testexcept"("FPI_DIVBYZERO") then \
 		setSPEFSCR(FP_FINV); \
 	endif; \
-	if "fpi_testexcept"(@"FPI_INVALID") then \
+	if "fpi_testexcept"("FPI_INVALID") then \
 		setSPEFSCR(FP_FINV); \
 	endif; \
-	if "fpi_testexcept"(@"FPI_UNDERFLOW") then \
+	if "fpi_testexcept"("FPI_UNDERFLOW") then \
 		setSPEFSCR(FP_FUNF); \
 	endif; \
-	if "fpi_testexcept"(@"FPI_INVALID") then \
+	if "fpi_testexcept"("FPI_INVALID") then \
 		setSPEFSCR(FP_FINV); \
 	endif; \
-	if "fpi_testexcept"(@"FPI_OVERFLOW") then \
+	if "fpi_testexcept"("FPI_OVERFLOW") then \
 		setSPEFSCR(FP_FOVF); \
 	endif; \
 	

@@ -391,10 +391,10 @@ op init ()
 
 		// HKC
 		FPSCR = 0;
-		"fpi_setround"(@"FPI_TONEAREST");
+		"fpi_setround"("FPI_TONEAREST");
 		// /HKC
 		// HKC-SET
-		fp_clear = @"FPI_INVALID" | @"FPI_DIVBYZERO";
+		fp_clear = "FPI_INVALID" | "FPI_DIVBYZERO";
 		// /HKC-SET
 	}
 

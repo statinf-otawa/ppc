@@ -181,24 +181,24 @@ macro FP_SET_ROUNDING_MODE =
 
 macro FP_SET_ROUNDING_MODE_ACTUAL = \
 	if FP_RN == FP_RN_TONEAREST then \
-		"fpi_setround"(@"FPI_TONEAREST"); \
+		"fpi_setround"("FPI_TONEAREST"); \
 	else \
 		if FP_RN == FP_RN_TOWARDZERO then \
-			"fpi_setround"(@"FPI_TOWARDZERO"); \
+			"fpi_setround"("FPI_TOWARDZERO"); \
 		else \
 			if FP_RN == FP_RN_UPWARD then \
-				"fpi_setround"(@"FPI_UPWARD"); \
+				"fpi_setround"("FPI_UPWARD"); \
 			else \
-				"fpi_setround"(@"FPI_DOWNWARD"); \
+				"fpi_setround"("FPI_DOWNWARD"); \
 			endif; \
 		endif; \
 	endif; \
 
 macro FP_ON_WRITE = \
 	FP_SET_ROUNDING_MODE_ACTUAL; \
-	if FPSCR<FP_OE .. FP_OE> then fp_clear = fp_clear | @"FPI_OVERFLOW"; endif; \
-	if FPSCR<FP_UE .. FP_UE> then fp_clear = fp_clear | @"FPI_UNDERFLOW"; endif; \
-	if FPSCR<FP_XE .. FP_XE> then fp_clear = fp_clear | @"FPI_INEXACT"; endif;
+	if FPSCR<FP_OE .. FP_OE> then fp_clear = fp_clear | "FPI_OVERFLOW"; endif; \
+	if FPSCR<FP_UE .. FP_UE> then fp_clear = fp_clear | "FPI_UNDERFLOW"; endif; \
+	if FPSCR<FP_XE .. FP_XE> then fp_clear = fp_clear | "FPI_INEXACT"; endif;
 
 // /HKC
 
@@ -272,7 +272,7 @@ macro clearFPSCR(x) = \
 	FPSCR <x..x> = 0 \
 
 macro setFIFR(x) = \
-	if ("fpi_testexcept"(@"FPI_INEXACT")) then \
+	if ("fpi_testexcept"("FPI_INEXACT")) then \
 	setFPSCR(FP_FI); \
 	setFPSCR(FP_XX); \
 	if FP_RN == FP_RN_TONEAREST then \
@@ -361,7 +361,7 @@ macro setFPRF64(x) = \
 	endif; \
 
 macro FP_COPY_FLAGS = \
-	if "fpi_testexcept"(@"FPI_INEXACT") then \
+	if "fpi_testexcept"("FPI_INEXACT") then \
 		// "puts"("EXN: INEXACT"); \
 		setFPSCR(FP_XX); \
 		setFPSCR(FP_FX); \
@@ -370,9 +370,9 @@ macro FP_COPY_FLAGS = \
 		endif; \
 	endif; \
 	// HKC-COPY \
-	if "fpi_testexcept"(@"FPI_DIVBYZERO" | @"FPI_UNDERFLOW" | @"FPI_OVERFLOW" | @"FPI_INVALID") then \
+	if "fpi_testexcept"("FPI_DIVBYZERO" | "FPI_UNDERFLOW" | "FPI_OVERFLOW" | "FPI_INVALID") then \
 	// /HKC-COPY \
-		if "fpi_testexcept"(@"FPI_DIVBYZERO") then \
+		if "fpi_testexcept"("FPI_DIVBYZERO") then \
 			// "puts"("EXN: DIVBYZERO"); \
 			setFPSCR(FP_ZX); \
 			setFPSCR(FP_FX); \
@@ -380,7 +380,7 @@ macro FP_COPY_FLAGS = \
 				setFPSCR(FP_FEX); \
 			endif; \
 		endif; \
-		if "fpi_testexcept"(@"FPI_UNDERFLOW") then \
+		if "fpi_testexcept"("FPI_UNDERFLOW") then \
 			// "puts"("EXN: UNDERFLOW"); \
 			setFPSCR(FP_UX); \
 			setFPSCR(FP_FX); \
@@ -388,7 +388,7 @@ macro FP_COPY_FLAGS = \
 				setFPSCR(FP_FEX); \
 			endif; \
 		endif; \
-		if "fpi_testexcept"(@"FPI_INVALID") then \
+		if "fpi_testexcept"("FPI_INVALID") then \
 			// "puts"("EXN: INVALID"); \
 			setFPSCR(FP_VX); \
 			setFPSCR(FP_FX); \
@@ -403,7 +403,7 @@ macro FP_COPY_FLAGS = \
 				setFPRF64(FPR[frd]); \
 				// /HKC-SETR
 			endif; \
-		if "fpi_testexcept"(@"FPI_OVERFLOW") then \
+		if "fpi_testexcept"("FPI_OVERFLOW") then \
 			// "puts"("EXN: OVERFLOW"); \
 			setFPSCR(FP_OX); \
 			setFPSCR(FP_FX); \
@@ -2005,7 +2005,7 @@ op ufp_ctiwz ( frd : index, frb : index )
    syntax = format ( "fctiwz fr%d,fr%d", frd, frb )
    image  = format ( "111111%5b00000%5b00000011110", frd, frb)
    action = {
-   		"fpi_setround"(@"FPI_TOWARDZERO");
+   		"fpi_setround"("FPI_TOWARDZERO");
 		FP_SET_ALL_EXCEPTIONS;
 
 		TMP_SWORD = coerce(int(32), FPR[frb]);
@@ -2027,7 +2027,7 @@ op ufp_ctiwz_cr_update ( frd : index, frb : index )
    syntax = format ( "fctiwz. fr%d,fr%d", frd, frb )
    image  = format ( "111111%5b00000%5b00000011111", frd, frb)
    action = {
-   		"fpi_setround"(@"FPI_TOWARDZERO");
+   		"fpi_setround"("FPI_TOWARDZERO");
 		FP_SET_ALL_EXCEPTIONS;
 		TMP_SWORD = coerce(int(32), FPR[frb]);
 		FP_SET_RESULT32_INT(frd, TMP_SWORD);

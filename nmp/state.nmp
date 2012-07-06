@@ -263,4 +263,18 @@ reg fp_clear[1, card(32)]
 
 
 // Useful canonicals
-//canon card(32) "fpi_testexcept"(card(32))
+canon word "fpi_testexcept"(word)
+canon "fpi_clearexcept"(word)
+canon "fpi_raiseexcept"(word)
+canon word "FPI_DIVBYZERO"
+canon word "FPI_INEXACT"
+canon word "FPI_INVALID"
+canon word "FPI_OVERFLOW"
+canon word "FPI_UNDERFLOW"
+
+canon "fpi_setround"(word)
+canon word "fpi_getround"()
+canon word "FPI_TONEAREST"
+canon word "FPI_TOWARDZERO"
+canon word "FPI_UPWARD"
+canon word "FPI_DOWNWARD"
