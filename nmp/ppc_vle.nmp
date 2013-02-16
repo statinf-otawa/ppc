@@ -36,6 +36,9 @@ op instrs32  =    uisa_instr
 
 // VLE instruction set
 op vle_isa(x: vle)
+	syntax = x.syntax
+	image = x.image
+	action = { x.action; }
 	instruction_set_select = VLE == 1
 	instruction_set_name = "VLE"
 
