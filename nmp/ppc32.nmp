@@ -68,9 +68,6 @@ mode UIMM16 ( n : card ( 16 ) ) = n
 macro CR_BIT(x)= \
 	CR[(31-(x))/4]<((31-(x))-(((31-(x))/4)*4))..((31-(x))-(((31-(x))/4)*4))> \
 
-macro CR_REG(x) = \
-	((31 - (x))/4) \
-
 macro add_overflow_check(op1,op2,res)= \
 	if (op1 >= 0 && op2 >= 0 && res < 0) then \
 		XER <OV_XER..OV_XER> = 1; \
@@ -304,67 +301,6 @@ let BANK_TBL   = 43
 let BANK_TBU   = 44
 
 
-// reg access macros
-
-// for the main banks
-
-macro gpr_read(n) = \
-	((READ_REG << 24) | (BANK_GPR << 16) | ((n) & 0xFFFF)) \
-macro gpr_write(n) = \
-	((WRITE_REG << 24) | (BANK_GPR << 16) | ((n) & 0xFFFF)) \
-macro gpr_read_range(l, u) = \
-	((READ_RANGE << 24) | (BANK_GPR << 16) | (((l) & 0xFF) << 8) | ((u) & 0xFF)) \
-macro gpr_write_range(l, u) = \
-	((WRITE_RANGE << 24) | (BANK_GPR << 16) | (((l) & 0xFF) << 8) | ((u) & 0xFF)) \
-
-macro fpr_read(n) = \
-	((READ_REG << 24) | (BANK_FPR << 16) | ((n) & 0xFFFF)) \
-macro fpr_write(n) = \
-	((WRITE_REG << 24) | (BANK_FPR << 16) | ((n) & 0xFFFF)) \
-macro fpr_read_range(l, u) = \
-	((READ_RANGE << 24) | (BANK_FPR << 16) | (((l) & 0xFF) << 8) | ((u) & 0xFF)) \
-macro fpr_write_range(l, u) = \
-	((WRITE_RANGE << 24) | (BANK_FPR << 16) | (((l) & 0xFF) << 8) | ((u) & 0xFF)) \
-
-macro cr_read(n) = \
-	((READ_REG << 24) | (BANK_CR << 16) | ((n) & 0xFFFF)) \
-macro cr_write(n) = \
-	((WRITE_REG << 24) | (BANK_CR << 16) | ((n) & 0xFFFF)) \
-macro cr_read_range(l, u) = \
-	((READ_RANGE << 24) | (BANK_CR << 16) | (((l) & 0xFF) << 8) | ((u) & 0xFF)) \
-macro cr_write_range(l, u) = \
-	((WRITE_RANGE << 24) | (BANK_CR << 16) | (((l) & 0xFF) << 8) | ((u) & 0xFF)) \
-
-macro lr_read = \
-	((READ_REG << 24) | (BANK_LR << 16)) \
-macro lr_write = \
-	((WRITE_REG << 24) | (BANK_LR << 16)) \
-
-macro ctr_read = \
-	((READ_REG << 24) | (BANK_CTR << 16)) \
-macro ctr_write = \
-	((WRITE_REG << 24) | (BANK_CTR << 16)) \
-
-macro xer_read = \
-	((READ_REG << 24) | (BANK_XER << 16)) \
-macro xer_write = \
-	((WRITE_REG << 24) | (BANK_XER << 16)) \
-
-// generic
-macro reg_read(bank, n) = \
-	((READ_REG << 24) | ((bank & 0xFF) << 16) | ((n) & 0xFFFF)) \
-macro reg_write(bank, n) = \
-	((WRITE_REG << 24) | ((bank & 0xFF) << 16) | ((n) & 0xFFFF)) \
-macro reg_read_range(bank, l, u) = \
-	((READ_RANGE << 24) | ((bank & 0xFF) << 16) | (((l) & 0xFF) << 8) | ((u) & 0xFF)) \
-macro reg_write_range(bank, l, u) = \
-	((WRITE_RANGE << 24) | ((bank & 0xFF) << 16) | (((l) & 0xFF) << 8) | ((u) & 0xFF)) \
-
-
-
-
-
-
 op uisa_instr   = uisa_base_instr
                 | uisa_fp_instr
 
@@ -439,7 +375,6 @@ op branch_rel ( BRANCH_ADDR : IMM24 )
    set_attr_branch = 1
 
    otawa_kind = BRANCH
-   otawa_target = __IADDR + (coerce(int(32), BRANCH_ADDR) << 2)
 
 op branch_abs ( BRANCH_ADDR : IMM24 )
    syntax = format ( "ba %s", BRANCH_ADDR.syntax )
@@ -451,7 +386,6 @@ op branch_abs ( BRANCH_ADDR : IMM24 )
    set_attr_branch = 1
 
    otawa_kind = BRANCH
-   otawa_target = coerce(card(32), BRANCH_ADDR) << 2
 
 op branch_link ( BRANCH_ADDR : IMM24 )
    syntax = format ( "bl 0x%08x", __IADDR + (coerce(int(32), BRANCH_ADDR ) << 2))
@@ -463,8 +397,6 @@ op branch_link ( BRANCH_ADDR : IMM24 )
              }
    otawa_kind = if BRANCH_ADDR == 1 then IS_ALU | IS_INT else IS_CONTROL | IS_CALL endif
    set_attr_branch = 1
-   otawa_target = __IADDR + (coerce(int(32), BRANCH_ADDR) << 2)
-   otawa_used_regs = "USED_REGS"(lr_write, END_REG)
 
 op branch_link_abs ( BRANCH_ADDR : IMM24 )
    syntax = format ( "bla %s", BRANCH_ADDR.syntax )
@@ -477,8 +409,6 @@ op branch_link_abs ( BRANCH_ADDR : IMM24 )
    set_attr_branch = 1
 
    otawa_kind = BRANCH | IS_CALL
-   otawa_target = coerce(card(32), BRANCH_ADDR) << 2
-   otawa_used_regs = "USED_REGS"(lr_write, END_REG)
 
 // Conditional Branch Instructions
 
@@ -523,12 +453,6 @@ op bran_cond_rel ( BO : card ( 5 ), BI : card ( 5 ), BD : SIMM )
 		else
 			BRANCH | IS_COND
 		endif
-   otawa_target = __IADDR + (coerce(int(32), BD) << 2)
-   otawa_used_regs = "USED_REGS"(
-	   	if !BO<2..2> then ctr_write else NO_REG endif,
-	   	ctr_read,
-	   	cr_read((31 - BI) >> 2),
-   	END_REG)
 
 op bran_cond_abs ( BO : card ( 5 ), BI : card ( 5 ), BD : SIMM )
    syntax = format ( "bca %d,%d,%s", BO, BI, BD.syntax )
@@ -554,8 +478,6 @@ op bran_cond_abs ( BO : card ( 5 ), BI : card ( 5 ), BD : SIMM )
 		else
 			BRANCH | IS_COND
 		endif
-   otawa_target = coerce(card(32), BD) << 2
-   otawa_used_regs = "USED_REGS"(if !BO<2..2> then ctr_write else NO_REG endif, END_REG)
 
 op bran_cond_link ( BO : card ( 5 ), BI : card ( 5 ), BD : SIMM )
    syntax = format ( "bcl %d,%d,%s", BO, BI, BD.syntax )
@@ -582,8 +504,6 @@ op bran_cond_link ( BO : card ( 5 ), BI : card ( 5 ), BD : SIMM )
 		else BRANCH | IS_CALL | IS_COND
 		endif endif
    set_attr_branch = 1
-   otawa_target = __IADDR + (coerce(int(32), BD) << 2)
-   otawa_used_regs = "USED_REGS"(if !BO<2..2> then ctr_write else NO_REG endif, lr_write, END_REG)
 
 op bran_cond_link_abs ( BO : card ( 5 ), BI : card ( 5 ), BD : SIMM )
    syntax = format ( "bcla %d,%d,%s", BO, BI, BD.syntax )
@@ -610,8 +530,6 @@ op bran_cond_link_abs ( BO : card ( 5 ), BI : card ( 5 ), BD : SIMM )
 		else
 			BRANCH | IS_CALL | IS_COND
 		endif
-   otawa_target = coerce(card(32), BD) << 2
-   otawa_used_regs = "USED_REGS"(if !BO<2..2> then ctr_write else NO_REG endif, lr_write, END_REG)
 
 
 // Branch Conditonal with Registers CTR and LR
@@ -653,8 +571,6 @@ op branch_cond_ctr ( BO : card ( 5 ), BI : card ( 5 ) )
 		else
 			BRANCH | IS_COND
 		endif
-   otawa_target = 0  //target not known until execution
-   otawa_used_regs = "USED_REGS"(if !BO<2..2> then ctr_write else NO_REG endif, lr_write, END_REG)
 
 op branch_cond_ctr_link ( BO : card ( 5 ), BI : card ( 5 ) )
    syntax = format ( "bcctrl %d,%d", BO, BI )
@@ -675,8 +591,6 @@ op branch_cond_ctr_link ( BO : card ( 5 ), BI : card ( 5 ) )
 		else
 			BRANCH | IS_CALL | IS_COND
 		endif
-   otawa_target = 0  //target not known until execution
-   otawa_used_regs = "USED_REGS"(if !BO<2..2> then ctr_write else NO_REG endif, lr_write, END_REG)
 
 op bran_cond_lr =   branch_cond_lr
                   | branch_cond_lr_link
@@ -703,13 +617,6 @@ op branch_cond_lr ( BO : card ( 5 ), BI : card ( 5 ) )
 		else
 			BRANCH | IS_RETURN | IS_COND
 		endif
-	otawa_target = 0  //target not known until execution
-	otawa_used_regs = "USED_REGS"(
-		if !BO<2..2> then ctr_write else NO_REG endif,
-		ctr_read,
-		lr_read,
-		cr_read((31 - BI) >> 2),
-		END_REG)
 
 op branch_cond_lr_link ( BO : card ( 5 ), BI : card ( 5 ) )
    syntax = format ( "bclrl %d,%d", BO, BI )
@@ -730,14 +637,6 @@ op branch_cond_lr_link ( BO : card ( 5 ), BI : card ( 5 ) )
    set_attr_branch = 1
 
    otawa_kind =  IS_CALL | BRANCH | (if  ( BO<2..2> & BO<4..4> ) then 0 else IS_COND endif)
-   otawa_target = 0  //target not known until execution
-   otawa_used_regs = "USED_REGS"(
-		if !BO<2..2> then ctr_write else NO_REG endif,
-		ctr_read,
-		lr_write,
-		lr_read,
-		cr_read((31 - BI) >> 2),
-		END_REG)
 
 
 // ------------------------------------------------------------------------- //
@@ -766,7 +665,6 @@ op sys_call ( )
    action = { "sc_impl"("instr","state",M);}
    otawa_kind = SYSTEM
    is_branch = 1
-   otawa_used_regs = "USED_REGS"(END_REG)
 
 // 2.2.2 Load and Store Instructions
 
@@ -811,7 +709,6 @@ op lb_zero ( rd : index, ra : REG_IND_ZERO, d : IADDR )
                GPR [ rd ] = TMP_BYTE;
                GPR [ rd ] = ( 0x000000ff & GPR [ rd ] );
             }
-   otawa_used_regs = "USED_REGS"(rzero(ra), gpr_write(rd), END_REG)
 
 
 op lb_zero_indexed ( rd : index, ra : REG_IND_ZERO, rb : REG_IND )
@@ -823,7 +720,6 @@ op lb_zero_indexed ( rd : index, ra : REG_IND_ZERO, rb : REG_IND )
                GPR [ rd ] = TMP_BYTE;
                GPR [ rd ] = ( 0x000000ff & GPR [ rd ] );
             }
-   otawa_used_regs = "USED_REGS"(rzero(ra), gpr_read(rb.value), gpr_write(rd), END_REG)
 
 
 op lb_zero_update ( rd : index, ra : index, d : IADDR )
@@ -840,7 +736,6 @@ op lb_zero_update ( rd : index, ra : index, d : IADDR )
                GPR [ rd ] = ( 0x000000ff & GPR [ rd ] );
                GPR [ ra ] = TMP_EA;
             }
-   otawa_used_regs = "USED_REGS"(gpr_read(ra), gpr_write(ra), gpr_write(rd), END_REG)
 
 op lb_zero_update_indexed ( rd : index, ra : index, rb : REG_IND )
    syntax = format ( "lbzux r%d,r%d,%s", rd, ra, rb.syntax )
@@ -856,7 +751,6 @@ op lb_zero_update_indexed ( rd : index, ra : index, rb : REG_IND )
                GPR [ rd ] = ( 0x000000ff & GPR [ rd ] );
                GPR [ ra ] = TMP_EA;
             }
-   otawa_used_regs = "USED_REGS"(gpr_read(ra), gpr_write(ra), gpr_read(rb.value), gpr_write(rd), END_REG)
 
 // Integer Load Half Word Instructions
 
@@ -885,7 +779,6 @@ op lhw_zero ( rd : index, ra : REG_IND_ZERO, d : IADDR )
                GPR [ rd ] = (GPR [ rd ] & 0x0000ffff);
 
             }
-   otawa_used_regs = "USED_REGS"(rzero(ra), gpr_write(rd), END_REG)
 
 op lhw_zero_indexed ( rd : index, ra : REG_IND_ZERO, rb : REG_IND )
    syntax = format ( "lhzx r%d,%s,%s", rd, ra.syntax, rb.syntax )
@@ -901,7 +794,6 @@ op lhw_zero_indexed ( rd : index, ra : REG_IND_ZERO, rb : REG_IND )
 
                GPR [ rd ] = (GPR [ rd ] & 0x0000ffff);
             }
-   otawa_used_regs = "USED_REGS"(rzero(ra), gpr_read(rb.value), gpr_write(rd), END_REG)
 
 op lhw_zero_update ( rd : index, ra : index, d : IADDR )
    syntax = format ( "lhzu r%d,%s(r%d)", rd, d.syntax, ra )
@@ -920,7 +812,6 @@ op lhw_zero_update ( rd : index, ra : index, d : IADDR )
                GPR [ ra ] = TMP_EA;
                GPR [ rd ] = (GPR [ rd ] & 0x0000ffff);
             }
-   otawa_used_regs = "USED_REGS"(gpr_read(ra), gpr_write(ra), gpr_write(rd), END_REG)
 
 op lhw_zero_update_indexed ( rd : index, ra : index, rb : REG_IND )
    syntax = format ( "lhzux r%d,r%d,%s", rd, ra, rb.syntax )
@@ -939,7 +830,6 @@ op lhw_zero_update_indexed ( rd : index, ra : index, rb : REG_IND )
                GPR [ ra ] = TMP_EA;
                GPR [ rd ] = (GPR [ rd ] & 0x0000ffff);
             }
-   otawa_used_regs = "USED_REGS"(gpr_read(ra), gpr_write(ra), gpr_read(rb.value), gpr_write(rd), END_REG)
 
 op lhw_alg ( rd : index, ra : REG_IND_ZERO, d : IADDR )
    syntax = format ( "lha r%d,%s(%s)", rd, d.syntax, ra.syntax )
@@ -957,7 +847,6 @@ op lhw_alg ( rd : index, ra : REG_IND_ZERO, d : IADDR )
                   GPR [ rd ] =  0xffff0000 | GPR [ rd ];
                endif;
             }
-   otawa_used_regs = "USED_REGS"(rzero(ra), gpr_write(rd), END_REG)
 
 op lhw_alg_indexed ( rd : index, ra : REG_IND_ZERO, rb : REG_IND )
    syntax = format ( "lhax r%d,%s,%s", rd, ra.syntax, rb.syntax )
@@ -975,7 +864,6 @@ op lhw_alg_indexed ( rd : index, ra : REG_IND_ZERO, rb : REG_IND )
                endif;
 
             }
-   otawa_used_regs = "USED_REGS"(rzero(ra), gpr_read(rb.value), gpr_write(rd), END_REG)
 
 op lhw_alg_update ( rd : index, ra : index, d : IADDR )
    syntax = format ( "lhau r%d,%s(r%d)", rd, d.syntax, ra )
@@ -1004,7 +892,6 @@ op lhw_alg_update ( rd : index, ra : index, d : IADDR )
                GPR [ ra ] = TMP_EA;
 
             }
-   otawa_used_regs = "USED_REGS"(gpr_read(ra), gpr_write(ra), gpr_write(rd), END_REG)
 
 op lhw_alg_update_indexed ( rd : index, ra : index, rb : REG_IND )
    syntax = format ( "lhaux r%d,r%d,%s", rd, ra, rb.syntax )
@@ -1033,7 +920,6 @@ op lhw_alg_update_indexed ( rd : index, ra : index, rb : REG_IND )
                GPR [ ra ] = TMP_EA;
 
             }
-   otawa_used_regs = "USED_REGS"(gpr_read(ra), gpr_write(ra), gpr_read(rb.value), gpr_write(rd), END_REG)
 
 
 // Integer Load Word Instructions
@@ -1052,7 +938,6 @@ op lw_zero ( rd : index, ra : REG_IND_ZERO, d : IADDR )
                GPR [ rd ] = M32 [TMP_EA];
 
             }
-   otawa_used_regs = "USED_REGS"(rzero(ra), gpr_write(rd), END_REG)
 
 op lw_zero_indexed ( rd : index, ra : REG_IND_ZERO, rb : REG_IND )
    syntax = format ( "lwzx r%d,%s,%s", rd, ra.syntax, rb.syntax )
@@ -1064,7 +949,6 @@ op lw_zero_indexed ( rd : index, ra : REG_IND_ZERO, rb : REG_IND )
                GPR [ rd ] = M32 [ TMP_EA ];
 
             }
-   otawa_used_regs = "USED_REGS"(rzero(ra), gpr_read(rb.value), gpr_write(rd), END_REG)
 
 op lw_zero_update ( rd : index, ra : index, d : IADDR )
    syntax = format ( "lwzu r%d,%s(r%d)", rd, d.syntax, ra )
@@ -1082,7 +966,6 @@ op lw_zero_update ( rd : index, ra : index, d : IADDR )
                GPR [ ra ] = TMP_EA;
 
             }
-   otawa_used_regs = "USED_REGS"(gpr_read(ra), gpr_write(ra), gpr_write(rd), END_REG)
 
 op lw_zero_update_indexed ( rd : index, ra : index, rb : REG_IND )
    syntax = format ( "lwzux r%d,r%d,%s", rd, ra, rb.syntax )
@@ -1100,7 +983,6 @@ op lw_zero_update_indexed ( rd : index, ra : index, rb : REG_IND )
                GPR [ ra ] = TMP_EA;
 
             }
-   otawa_used_regs = "USED_REGS"(gpr_read(ra), gpr_write(ra), gpr_read(rb.value), gpr_write(rd), END_REG)
 
 // Integer Load with Byte reversal Instructions
 
@@ -1118,7 +1000,6 @@ op lhw_br_index ( rd : index, ra : REG_IND_ZERO, rb : REG_IND )
                GPR [ rd ] = M16 [ TMP_EA ];
 			   GPR [ rd ] = GPR [ rd ] & 0x0000ffff;
             }
-   otawa_used_regs = "USED_REGS"(rzero(ra), gpr_read(rb.value), gpr_write(rd), END_REG)
 
 op lw_br_index ( rd : index, ra : REG_IND_ZERO, rb : REG_IND )
    syntax = format ( "lwbrx r%d,%s,%s", rd, ra.syntax, rb.syntax )
@@ -1131,7 +1012,6 @@ op lw_br_index ( rd : index, ra : REG_IND_ZERO, rb : REG_IND )
                GPR [ rd ] = M32 [ TMP_EA ];
 
             }
-   otawa_used_regs = "USED_REGS"(rzero(ra), gpr_read(rb.value), gpr_write(rd), END_REG)
 
 // Integer Load Multiple Instructions
 
@@ -1157,7 +1037,6 @@ op int_load_multiple ( rd : index, ra : REG_IND_ZERO, d : IMM16 )
                 endif;
 
              }
-    otawa_used_regs = "USED_REGS"(rzero(ra), gpr_write_range(rd, 31), gpr_read(rd), END_REG)
     otawa_kind = LOAD | IS_MULTI
 
 // Integer Load String Instructions
@@ -1200,7 +1079,6 @@ op lstw_imm ( rd : index, ra : REG_IND_ZERO, NB : LS_COUNT )
                endif;
 
            }
-    otawa_used_regs = "USED_REGS"(rzero(ra), END_REG)	// !!TOFIX!!
 
 op lstw_index ( rd : index, ra : REG_IND_ZERO, rb : REG_IND )
    syntax = format ( "lswx r%d,%s,%s", rd, ra.syntax, rb.syntax )
@@ -1242,7 +1120,6 @@ op lstw_index ( rd : index, ra : REG_IND_ZERO, rb : REG_IND )
                endif;
 
            }
-    otawa_used_regs = "USED_REGS"(rzero(ra), gpr_read(rb.value), END_REG)	// !!TOFIX!!
 
 
 // Integer Store Instructions
@@ -1278,7 +1155,6 @@ op st_byte ( rs : index, ra : REG_IND_ZERO, d : IADDR )
                M [ TMP_EA ] = TMP_SWORD_A0;
 
             }
-   otawa_used_regs = "USED_REGS"(rzero(ra), gpr_read(rs), END_REG)
 
 op st_byte_indexed ( rs : index, ra : REG_IND_ZERO, rb : REG_IND )
    syntax = format ( "stbx r%d,%s,%s", rs, ra.syntax, rb.syntax )
@@ -1292,7 +1168,6 @@ op st_byte_indexed ( rs : index, ra : REG_IND_ZERO, rb : REG_IND )
                M [ TMP_EA ] = TMP_SWORD_A0;
 
             }
-   otawa_used_regs = "USED_REGS"(rzero(ra), gpr_read(rb.value), gpr_read(rs), END_REG)
 
 op st_byte_update ( rs : index, ra : index, d : IADDR )
    syntax = format ( "stbu r%d,%s(r%d)", rs, d.syntax, ra )
@@ -1312,7 +1187,6 @@ op st_byte_update ( rs : index, ra : index, d : IADDR )
 		GPR [ ra ] = TMP_EA;
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra), gpr_write(ra), gpr_read(rs), END_REG)
 
 op st_byte_update_indexed ( rs : index, ra : index, rb : REG_IND )
    syntax = format ( "stbux r%d,r%d,%s", rs, ra, rb.syntax )
@@ -1332,7 +1206,6 @@ op st_byte_update_indexed ( rs : index, ra : index, rb : REG_IND )
 		GPR [ ra ] = TMP_EA;
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra), gpr_write(ra), gpr_read(rb.value), gpr_read(rs), END_REG)
 
 // Integer Store Half Word Instructions
 
@@ -1350,7 +1223,6 @@ op st_half_word ( rs : index, ra : REG_IND_ZERO, d : IADDR )
                M16 [ TMP_EA ] = GPR [rs];
 
             }
-   otawa_used_regs = "USED_REGS"(rzero(ra), gpr_read(rs), END_REG)
 
 
 op st_half_word_indexed ( rs : index, ra : REG_IND_ZERO, rb : REG_IND )
@@ -1362,7 +1234,6 @@ op st_half_word_indexed ( rs : index, ra : REG_IND_ZERO, rb : REG_IND )
                M16 [ TMP_EA ] = GPR [ rs ];
 
             }
-   otawa_used_regs = "USED_REGS"(rzero(ra), gpr_read(rb.value), gpr_read(rs), END_REG)
 
 op st_half_word_update ( rs : index, ra : index, d : IADDR )
    syntax = format ( "sthu r%d,%s(r%d)", rs, d.syntax, ra )
@@ -1380,7 +1251,6 @@ op st_half_word_update ( rs : index, ra : index, d : IADDR )
 		GPR [ ra ] = TMP_EA;
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra), gpr_read(rs), END_REG)
 
 op st_half_word_update_indexed ( rs : index, ra : index, rb : REG_IND )
    syntax = format ( "sthux r%d,r%d,%s", rs, ra, rb.syntax )
@@ -1398,7 +1268,6 @@ op st_half_word_update_indexed ( rs : index, ra : index, rb : REG_IND )
 		GPR [ ra ] = TMP_EA;
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra), gpr_write(ra), gpr_read(rb.value), gpr_read(rs), END_REG)
 
 // Integer Store Word Instructions
 
@@ -1417,7 +1286,6 @@ op st_word ( rs : index, ra : REG_IND_ZERO, d : IADDR )
 		M32 [ TMP_EA ] = GPR [ rs ];
 
 		}
-   otawa_used_regs = "USED_REGS"(rzero(ra), gpr_read(rs), END_REG)
 
 op st_word_indexed ( rs : index, ra : REG_IND_ZERO, rb : REG_IND )
    syntax = format ( "stwx r%d,%s,%s", rs, ra.syntax, rb.syntax )
@@ -1429,7 +1297,6 @@ op st_word_indexed ( rs : index, ra : REG_IND_ZERO, rb : REG_IND )
 		M32 [ TMP_EA ] = GPR [ rs ];
 
 		}
-   otawa_used_regs = "USED_REGS"(rzero(ra), gpr_read(rb.value), gpr_read(rs), END_REG)
 
 op st_word_update ( rs : index, ra : index, d : IADDR )
    syntax = format ( "stwu r%d,%s(r%d)", rs, d.syntax, ra )
@@ -1447,7 +1314,6 @@ op st_word_update ( rs : index, ra : index, d : IADDR )
 		GPR [ ra ] = TMP_EA;
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra), gpr_write(ra), gpr_read(rs), END_REG)
 
 op st_word_update_indexed ( rs : index, ra : index, rb : REG_IND )
    syntax = format ( "stwux r%d,r%d,%s", rs, ra, rb.syntax )
@@ -1465,7 +1331,6 @@ op st_word_update_indexed ( rs : index, ra : index, rb : REG_IND )
 		GPR [ ra ] = TMP_EA;
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra), gpr_write(ra), gpr_read(rb.value), gpr_read(rs), END_REG)
 
 // Integer Store with Byte reversal Instructions
 
@@ -1482,7 +1347,6 @@ op sthw_br_index ( rs : index, ra : REG_IND_ZERO, rb : REG_IND )
 		M16 [ TMP_EA ]  = GPR [ rs ];
 
 		}
-   otawa_used_regs = "USED_REGS"(rzero(ra), gpr_read(rb.value), gpr_read(rs), END_REG)
 
 op stw_br_index ( rs : index, ra : REG_IND_ZERO, rb : REG_IND )
    syntax = format ( "stwbrx r%d,%s,%s", rs, ra.syntax, rb.syntax )
@@ -1493,7 +1357,6 @@ op stw_br_index ( rs : index, ra : REG_IND_ZERO, rb : REG_IND )
 		M32 [ TMP_EA ] = GPR [ rs ];
 
 		}
-   otawa_used_regs = "USED_REGS"(rzero(ra), gpr_read(rb.value), gpr_read(rs), END_REG)
 
 // Integer Store Multiple Instructions
 
@@ -1519,7 +1382,6 @@ op int_store_multiple ( rs : index, ra : REG_IND_ZERO, d : IMM16 )
 
 		}
    otawa_kind = STORE | IS_MULTI
-   otawa_used_regs = "USED_REGS"(rzero(ra), gpr_read(rs), gpr_read_range(rs, 31), END_REG)
 
 // Integer Store String Instructions
 
@@ -1564,7 +1426,6 @@ op ststw_imm ( rs : index, ra : REG_IND_ZERO, NB : LS_COUNT )
 		endif;
 
 		}
-   otawa_used_regs = "USED_REGS"(rzero(ra), gpr_read(rs), END_REG)
 
 op ststw_index ( rs : index, ra : REG_IND_ZERO, rb : REG_IND )
    syntax = format ( "stswx r%d,%s,%s", rs, ra.syntax, rb.syntax )
@@ -1657,14 +1518,6 @@ op add ( rd : index, ra : REG_IND, rb : REG_IND ,Rc : card (1) , Oe : card(1))
 			CR7_update(TMP_RES);
        	endif;
         }
-   otawa_used_regs =
-   	"USED_REGS"(
-   		gpr_read(ra.value),
-   		gpr_read(rb.value),
-   		gpr_write(rd),
-   		if Oe then xer_write else NO_REG endif,
-   		if Rc then cr_write(7) else NO_REG endif,
-   		END_REG)
 
 
 // Add Immediate Instructions
@@ -1680,7 +1533,6 @@ op add_imm ( rd : index, ra : REG_IND_ZERO, da : SIMM16 )
    action = {
                 GPR [ rd ] = ra + da;
             }
-   otawa_used_regs = "USED_REGS"(rzero(ra), gpr_write(rd), END_REG)
 
 op add_imm_shifted ( rd : index, ra : REG_IND_ZERO, da : SIMM16 )
    syntax = format ( "addis r%d,%s,%s", rd, ra.syntax, da.syntax)
@@ -1689,7 +1541,6 @@ op add_imm_shifted ( rd : index, ra : REG_IND_ZERO, da : SIMM16 )
                TMP_SWORD = da;
                 GPR [ rd ] = ra + ( TMP_SWORD << 16 );
             }
-   otawa_used_regs = "USED_REGS"(rzero(ra), gpr_write(rd), END_REG)
 
 op add_imm_carry ( rd : index, ra : REG_IND, imm : SIMM16 )
    syntax = format ( "addic r%d,%s,%s", rd, ra.syntax, imm.syntax )
@@ -1701,7 +1552,6 @@ op add_imm_carry ( rd : index, ra : REG_IND, imm : SIMM16 )
 		GPR[rd] = TMP_RES;
 
        	}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_write(rd), xer_write, END_REG)
 
 op add_imm_carry_record ( rd : index, ra : REG_IND, imm : SIMM16 )
    syntax = format ( "addic. r%d,%s,%s", rd, ra.syntax, imm.syntax )
@@ -1715,7 +1565,6 @@ op add_imm_carry_record ( rd : index, ra : REG_IND, imm : SIMM16 )
 
 		CR7_update(TMP_RES);
   		}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_write(rd), xer_write, cr_write(7), END_REG)
 
 // Add with carry Instructions
 
@@ -1733,7 +1582,6 @@ op add_carrying ( rd : index, ra : REG_IND, rb : REG_IND )
 		add_carry_check(ra, rb, TMP_RES);
 		GPR[rd] = TMP_RES;
         }
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), gpr_write(rd), xer_write, END_REG)
 
 op add_carry_cr_update ( rd : index, ra : REG_IND, rb : REG_IND )
    syntax = format ( "addc. r%d,%s,%s", rd, ra.syntax, rb.syntax )
@@ -1746,7 +1594,6 @@ op add_carry_cr_update ( rd : index, ra : REG_IND, rb : REG_IND )
 
 		CR7_update(TMP_RES);
         }
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), gpr_write(rd), xer_write, cr_write(7), END_REG)
 
 op add_carry_overflow ( rd : index, ra : REG_IND, rb : REG_IND )
    syntax = format ( "addco r%d,%s,%s", rd, ra.syntax, rb.syntax )
@@ -1760,7 +1607,6 @@ op add_carry_overflow ( rd : index, ra : REG_IND, rb : REG_IND )
 
 		GPR[rd] = TMP_RES;
       	}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), gpr_write(rd), xer_write, END_REG)
 
 op add_carry_overflow_cr_update ( rd : index, ra : REG_IND, rb : REG_IND )
    syntax = format ( "addco. r%d,%s,%s", rd, ra.syntax, rb.syntax )
@@ -1776,7 +1622,6 @@ op add_carry_overflow_cr_update ( rd : index, ra : REG_IND, rb : REG_IND )
 
 		CR7_update(TMP_RES);
 	  	}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), gpr_write(rd), xer_write, cr_write(7), END_REG)
 
 // Add extended Instructions
 
@@ -1795,7 +1640,6 @@ op add_extend ( rd : index, ra : REG_IND, rb : REG_IND )
 		GPR[rd] = TMP_RES;
 
        	}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), gpr_write(rd), xer_write, xer_read, END_REG)
 
 op add_extend_cr_update ( rd : index, ra : REG_IND, rb : REG_IND )
    syntax = format ( "adde. r%d,%s,%s", rd, ra.syntax, rb.syntax )
@@ -1808,7 +1652,6 @@ op add_extend_cr_update ( rd : index, ra : REG_IND, rb : REG_IND )
 
 		CR7_update(TMP_RES);
 		}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), gpr_write(rd), xer_write, xer_read, cr_write(7), END_REG)
 
 op add_extend_overflow ( rd : index, ra : REG_IND, rb : REG_IND )
    syntax = format ( "addeo r%d,%s,%s", rd, ra.syntax, rb.syntax )
@@ -1821,7 +1664,6 @@ op add_extend_overflow ( rd : index, ra : REG_IND, rb : REG_IND )
 		TMP_RES = GPR[rd];
 
      	}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), gpr_write(rd), xer_write, xer_read, END_REG)
 
 op add_extd_overflow_cr_upd ( rd : index, ra : REG_IND, rb : REG_IND )
    syntax = format ( "addeo. r%d,%s,%s", rd, ra.syntax, rb.syntax )
@@ -1836,7 +1678,6 @@ op add_extd_overflow_cr_upd ( rd : index, ra : REG_IND, rb : REG_IND )
 
 		CR7_update(TMP_RES);
   		}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), gpr_write(rd), xer_write, xer_read, cr_write(7), END_REG)
 
 // Add minus one Instructions
 
@@ -1854,7 +1695,6 @@ op add_me ( rd : index, ra : REG_IND)
 		add_carry_check_extended(ra,-1,TMP_RES,XER<CA_XER..CA_XER>);
 		GPR[rd] = TMP_RES;
        	}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_write(rd), xer_write, xer_read, END_REG)
 
 op add_me_cr_update ( rd : index, ra : REG_IND)
    syntax = format ( "addme. r%d,%s", rd, ra.syntax )
@@ -1867,7 +1707,6 @@ op add_me_cr_update ( rd : index, ra : REG_IND)
 
 		CR7_update(TMP_RES);
      	}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_write(rd), xer_write, xer_read, cr_write(7), END_REG)
 
 op add_me_overflow ( rd : index, ra : REG_IND)
    syntax = format ( "addmeo r%d,%s", rd, ra.syntax )
@@ -1880,7 +1719,6 @@ op add_me_overflow ( rd : index, ra : REG_IND)
 		GPR[rd] = TMP_RES;
 
     	}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_write(rd), xer_write, xer_read, END_REG)
 
 op add_me_overflow_cr_update ( rd : index, ra : REG_IND)
    syntax = format ( "addmeo. r%d,%s", rd, ra.syntax )
@@ -1894,7 +1732,6 @@ op add_me_overflow_cr_update ( rd : index, ra : REG_IND)
 
 		CR7_update(TMP_RES);
   		}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_write(rd), xer_write, xer_read, cr_write(7), END_REG)
 
 // Add zero extended Instructions
 
@@ -1913,7 +1750,6 @@ op add_ze ( rd : index, ra : REG_IND)
 		GPR[rd] = TMP_RES;
 
   		}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_write(rd), xer_write, xer_read, END_REG)
 
 op add_ze_cr_update ( rd : index, ra : REG_IND)
    syntax = format ( "addze. r%d,%s", rd, ra.syntax )
@@ -1925,7 +1761,6 @@ op add_ze_cr_update ( rd : index, ra : REG_IND)
 
 		CR7_update(TMP_RES);
       	}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_write(rd), xer_write, xer_read, cr_write(7), END_REG)
 
 op add_ze_overflow ( rd : index, ra : REG_IND)
    syntax = format ( "addzeo r%d,%s", rd, ra.syntax )
@@ -1938,7 +1773,6 @@ op add_ze_overflow ( rd : index, ra : REG_IND)
 		GPR[rd] = TMP_RES;
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_write(rd), xer_write, xer_read, END_REG)
 
 op add_ze_overflow_cr_update ( rd : index, ra : REG_IND)
    syntax = format ( "addzeo. r%d,%s", rd, ra.syntax )
@@ -1952,7 +1786,6 @@ op add_ze_overflow_cr_update ( rd : index, ra : REG_IND)
 
 		CR7_update(TMP_RES);
 		}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_write(rd), xer_write, xer_read, cr_write(7), END_REG)
 
 // Integer Subtract Instructions
 op int_subtract (x: int_subtract_action)
@@ -1983,7 +1816,6 @@ op sub ( rd : index, ra : REG_IND, rb : REG_IND )
                GPR [ rd ] = ~ra + rb + 1;
 
             }
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), gpr_write(rd), END_REG)
 
 op sub_cr_update ( rd : index, ra : REG_IND, rb : REG_IND )
    syntax = format ( "subf. r%d,%s,%s", rd, ra.syntax, rb.syntax )
@@ -1994,7 +1826,6 @@ op sub_cr_update ( rd : index, ra : REG_IND, rb : REG_IND )
 	  	GPR [ rd ] = TMP_RES;
 		CR7_update(TMP_RES);
 		}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), gpr_write(rd), cr_write(7), END_REG)
 
 op sub_overflow_enable ( rd : index, ra : REG_IND, rb : REG_IND )
    syntax = format ( "subfo r%d,%s,%s", rd, ra.syntax, rb.syntax )
@@ -2006,7 +1837,6 @@ op sub_overflow_enable ( rd : index, ra : REG_IND, rb : REG_IND )
 		sub_overflow_check(ra, rb, TMP_RES);
   		GPR[rd] = TMP_RES;
 		}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), gpr_write(rd), xer_write, END_REG)
 
 op sub_crup_overen ( rd : index, ra : REG_IND, rb : REG_IND )
    syntax = format ( "subfo. r%d,%s,%s", rd, ra.syntax, rb.syntax )
@@ -2018,7 +1848,6 @@ op sub_crup_overen ( rd : index, ra : REG_IND, rb : REG_IND )
 		GPR[rd]=TMP_RES;
 		CR7_update(TMP_RES);
 		}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), gpr_write(rd), xer_write, cr_write(7), END_REG)
 
 // Subtract Immediate Instruction
 
@@ -2032,7 +1861,6 @@ op sub_imm_carry_rec ( rd : index, ra : REG_IND, imm : IMM16 )
 		GPR[rd] = TMP_RES;
 
     	}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_write(rd), xer_write, END_REG)
 
 // Subtract with carry Instructions
 
@@ -2050,7 +1878,6 @@ op sub_carrying ( rd : index, ra : REG_IND, rb : REG_IND )
 		sub_carry_check(ra,rb,1);
 		GPR[rd] = TMP_RES;
    		}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), gpr_write(rd), xer_write, END_REG)
 
 op sub_carry_cr_update ( rd : index, ra : REG_IND, rb : REG_IND )
    syntax = format ( "subfc. r%d,%s,%s", rd, ra.syntax, rb.syntax )
@@ -2063,7 +1890,6 @@ op sub_carry_cr_update ( rd : index, ra : REG_IND, rb : REG_IND )
 		GPR[rd] = TMP_RES;
 		CR7_update(TMP_RES);
      	}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), gpr_write(rd), xer_write, cr_write(7), END_REG)
 
 op sub_carry_overflow ( rd : index, ra : REG_IND, rb : REG_IND )
    syntax = format ( "subfco r%d,%s,%s", rd, ra.syntax, rb.syntax )
@@ -2077,7 +1903,6 @@ op sub_carry_overflow ( rd : index, ra : REG_IND, rb : REG_IND )
 
 		GPR[rd] = TMP_RES;
 		}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), gpr_write(rd), xer_write, END_REG)
 
 op sub_carry_overflow_cr_update ( rd : index, ra : REG_IND, rb : REG_IND )
    syntax = format ( "subfco. r%d,%s,%s", rd, ra.syntax, rb.syntax )
@@ -2093,7 +1918,6 @@ op sub_carry_overflow_cr_update ( rd : index, ra : REG_IND, rb : REG_IND )
 
 		CR7_update(TMP_RES);
      	}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), gpr_write(rd), xer_write, cr_write(7), END_REG)
 
 // Subtract extended Instructions
 
@@ -2112,7 +1936,6 @@ op sub_extend ( rd : index, ra : REG_IND, rb : REG_IND )
 		GPR[rd] = TMP_RES;
 
      	}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), gpr_write(rd), xer_read, xer_write, END_REG)
 
 op sub_extend_cr_update ( rd : index, ra : REG_IND, rb : REG_IND )
    syntax = format ( "subfe. r%d,%s,%s", rd, ra.syntax, rb.syntax )
@@ -2125,7 +1948,6 @@ op sub_extend_cr_update ( rd : index, ra : REG_IND, rb : REG_IND )
 
 		CR7_update(TMP_RES);
       	}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), gpr_write(rd), xer_read, xer_write, cr_write(7), END_REG)
 
 op sub_extend_overflow ( rd : index, ra : REG_IND, rb : REG_IND )
    syntax = format ( "subfeo r%d,%s,%s", rd, ra.syntax, rb.syntax )
@@ -2138,7 +1960,6 @@ op sub_extend_overflow ( rd : index, ra : REG_IND, rb : REG_IND )
     	GPR[rd] = TMP_RES;
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), gpr_write(rd), xer_read, xer_write, END_REG)
 
 op sub_extd_overflow_cr_upd ( rd : index, ra : REG_IND, rb : REG_IND )
    syntax = format ( "subfeo. r%d,%s,%s", rd, ra.syntax, rb.syntax )
@@ -2152,7 +1973,6 @@ op sub_extd_overflow_cr_upd ( rd : index, ra : REG_IND, rb : REG_IND )
 
 		CR7_update(TMP_RES);
 		}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), gpr_write(rd), xer_read, xer_write, cr_write(7), END_REG)
 
 // Subtract minus one Instructions
 
@@ -2170,7 +1990,6 @@ op sub_me ( rd : index, ra : REG_IND)
 		sub_carry_check(ra,-1,XER<CA_XER..CA_XER>);
 		GPR[rd] = TMP_RES;
        	}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_write(rd), xer_read, xer_write, END_REG)
 
 op sub_me_cr_update ( rd : index, ra : REG_IND)
    syntax = format ( "subfme. r%d,%s", rd, ra.syntax )
@@ -2183,7 +2002,6 @@ op sub_me_cr_update ( rd : index, ra : REG_IND)
 
 		CR7_update(TMP_RES);
        	}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_write(rd), xer_read, xer_write, cr_write(7), END_REG)
 
 op sub_me_overflow ( rd : index, ra : REG_IND)
    syntax = format ( "subfmeo r%d,%s", rd, ra.syntax )
@@ -2195,7 +2013,6 @@ op sub_me_overflow ( rd : index, ra : REG_IND)
 		GPR[rd] = TMP_RES;
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_write(rd), xer_read, xer_write, END_REG)
 
 op sub_me_overflow_cr_update ( rd : index, ra : REG_IND)
    syntax = format ( "subfmeo. r%d,%s", rd, ra.syntax )
@@ -2209,7 +2026,6 @@ op sub_me_overflow_cr_update ( rd : index, ra : REG_IND)
 
 		CR7_update(TMP_RES);
        	}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_write(rd), xer_read, xer_write, cr_write(7), END_REG)
 
 // Subtract zero extended Instructions
 
@@ -2227,7 +2043,6 @@ op sub_ze ( rd : index, ra : REG_IND)
 		sub_carry_check(ra,0,XER<CA_XER..CA_XER>);
 		GPR[rd] = TMP_RES;
 		}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_write(rd), xer_read, xer_write, END_REG)
 
 op sub_ze_cr_update ( rd : index, ra : REG_IND)
    syntax = format ( "subfze. r%d,%s", rd, ra.syntax )
@@ -2240,7 +2055,6 @@ op sub_ze_cr_update ( rd : index, ra : REG_IND)
 
 		CR7_update(TMP_RES);
        	}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_write(rd), xer_read, xer_write, cr_write(7), END_REG)
 
 op sub_ze_overflow ( rd : index, ra : REG_IND)
    syntax = format ( "subfzeo r%d,%s", rd, ra.syntax )
@@ -2253,7 +2067,6 @@ op sub_ze_overflow ( rd : index, ra : REG_IND)
 		GPR[rd] = TMP_RES;
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_write(rd), xer_read, xer_write, END_REG)
 
 op sub_ze_overflow_cr_update ( rd : index, ra : REG_IND)
    syntax = format ( "subfzeo. r%d,%s", rd, ra.syntax )
@@ -2266,7 +2079,6 @@ op sub_ze_overflow_cr_update ( rd : index, ra : REG_IND)
 
 		CR7_update(TMP_RES);
   		}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_write(rd), xer_read, xer_write, cr_write(7), END_REG)
 
 // Integer Multiply Instructions
 op int_multiply ( x : int_multiply_action )
@@ -2295,7 +2107,6 @@ op mult_lw ( rd : index, ra : REG_IND, rb : REG_IND )
 		GPR [ rd ] = ra * rb;
 
        	}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), gpr_write(rd), END_REG)
 
 op mult_lw_cr_update ( rd : index, ra : REG_IND, rb : REG_IND )
    syntax = format ( "mullw. r%d,%s,%s", rd, ra.syntax, rb.syntax )
@@ -2306,8 +2117,7 @@ op mult_lw_cr_update ( rd : index, ra : REG_IND, rb : REG_IND )
 		 GPR [ rd ] = TMP_RES ;
 		CR7_update(TMP_RES);
         }
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), gpr_write(rd), cr_write(7), END_REG)
-
+ 
 op mult_lw_overflow ( rd : index, ra : REG_IND, rb : REG_IND )
    syntax = format ( "mullwo r%d,%s,%s", rd, ra.syntax, rb.syntax )
    image  = format ( "011111%5b%s%s10111010110", rd, ra.image, rb.image )
@@ -2318,7 +2128,6 @@ op mult_lw_overflow ( rd : index, ra : REG_IND, rb : REG_IND )
 		GPR[rd] = TMP_RES;
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), gpr_write(rd), xer_write, END_REG)
 
 op mult_lw_overflow_cr_upd ( rd : index, ra : REG_IND, rb : REG_IND )
    syntax = format ( "mullwo. r%d,%s,%s", rd, ra.syntax, rb.syntax )
@@ -2331,7 +2140,6 @@ op mult_lw_overflow_cr_upd ( rd : index, ra : REG_IND, rb : REG_IND )
 
 		CR7_update(TMP_RES);
         }
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), gpr_write(rd), xer_write, cr_write(7), END_REG)
 
 
 // Multiply Low Immediate
@@ -2344,7 +2152,6 @@ op mult_low_imm ( rd : index, ra : REG_IND, imm : IMM16 )
    		GPR [ rd ] = ra * imm;
 
       	}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_write(rd), END_REG)
 
 // Multiply High Word
 
@@ -2361,7 +2168,6 @@ op mult_hi ( rd : index, ra : REG_IND, rb : REG_IND )
         GPR [ rd ] = TMP_SDWORD < 63..32 >;
 
         }
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), gpr_write(rd), END_REG)
 
 op mult_hi_cr_update ( rd : index, ra : REG_IND, rb : REG_IND )
    syntax = format ( "mulhw. r%d,%s,%s", rd, ra.syntax, rb.syntax )
@@ -2374,7 +2180,6 @@ op mult_hi_cr_update ( rd : index, ra : REG_IND, rb : REG_IND )
 
 		CR7_update(TMP_SDWORD < 63..32 >);
 		}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), gpr_write(rd), cr_write(7), END_REG)
 
 // Multiply High word unsigned
 
@@ -2390,7 +2195,6 @@ op mult_hi_us ( rd : index, ra : REG_IND, rb : REG_IND )
 		GPR [ rd ] = TMP_DWORD < 63..32 >;
 
         }
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), gpr_write(rd), END_REG)
 
 op mult_hi_us_cr_update ( rd : index, ra : REG_IND, rb : REG_IND )
    syntax = format ( "mulhwu. r%d,%s,%s", rd , ra.syntax, rb.syntax )
@@ -2403,7 +2207,6 @@ op mult_hi_us_cr_update ( rd : index, ra : REG_IND, rb : REG_IND )
 
 		CR7_update(TMP_DWORD < 63..32 >);
 		}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), gpr_write(rd), cr_write(7), END_REG)
 
 // Integer Divide Instructions
 op int_divide ( x : int_divide_action )
@@ -2431,7 +2234,6 @@ op divw ( rd : index, ra : REG_IND, rb : REG_IND )
 			GPR [ rd ] = ra / rb;
 		endif;
         }
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), gpr_write(rd), END_REG)
 
 op divw_cr_update ( rd : index, ra : REG_IND, rb : REG_IND )
    syntax = format ( "divw. r%d,%s,%s", rd, ra.syntax, rb.syntax )
@@ -2447,7 +2249,6 @@ op divw_cr_update ( rd : index, ra : REG_IND, rb : REG_IND )
 		endif;
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), gpr_write(rd), cr_write(7), END_REG)
 
 op divw_overflow ( rd : index, ra : REG_IND, rb : REG_IND )
    syntax = format ( "divwo r%d,%s,%s", rd, ra.syntax, rb.syntax )
@@ -2465,7 +2266,6 @@ op divw_overflow ( rd : index, ra : REG_IND, rb : REG_IND )
 		GPR[rd] = TMP_RES;
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), gpr_write(rd), xer_write, END_REG)
 
 op divw_overflow_cr_upd ( rd : index, ra : REG_IND, rb : REG_IND )
    syntax = format ( "divwo. r%d,%s,%s", rd, ra.syntax, rb.syntax )
@@ -2484,7 +2284,6 @@ op divw_overflow_cr_upd ( rd : index, ra : REG_IND, rb : REG_IND )
 			CR7_update(TMP_RES);
 		endif;
 		}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), gpr_write(rd), xer_write, cr_write(7), END_REG)
 
 // Divide word unsigned
 
@@ -2505,7 +2304,6 @@ op divwus ( rd : index, ra : REG_IND, rb : REG_IND )
 			GPR [ rd ] = coerce ( card ( 32 ) , ra ) / coerce ( card ( 32 ) , rb );
 		endif;
 		}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), gpr_write(rd), END_REG)
 
 op divwus_cr_update ( rd : index, ra : REG_IND, rb : REG_IND )
    syntax = format ( "divwu. r%d,%s,%s", rd, ra.syntax, rb.syntax )
@@ -2521,7 +2319,6 @@ op divwus_cr_update ( rd : index, ra : REG_IND, rb : REG_IND )
 		endif;
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), gpr_write(rd), cr_write(7), END_REG)
 
 op divwus_overflow ( rd : index, ra : REG_IND, rb : REG_IND )
    syntax = format ( "divwuo r%d,%s,%s", rd, ra.syntax, rb.syntax )
@@ -2539,8 +2336,7 @@ op divwus_overflow ( rd : index, ra : REG_IND, rb : REG_IND )
 		GPR[rd] = TMP_RES;
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), gpr_write(rd), xer_write, END_REG)
-
+ 
 op divwus_overflow_cr_upd ( rd : index, ra : REG_IND, rb : REG_IND )
    syntax = format ( "divwuo. r%d,%s,%s", rd, ra.syntax, rb.syntax )
    image  = format ( "011111%5b%s%s11110010111", rd, ra.image, rb.image )
@@ -2560,7 +2356,6 @@ op divwus_overflow_cr_upd ( rd : index, ra : REG_IND, rb : REG_IND )
 			CR7_update(TMP_RES);
 		endif;
 		}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), gpr_write(rd), xer_write, cr_write(7), END_REG)
 
 // Integer Negate Instruction
 op int_negate ( x : int_negate_action )
@@ -2582,7 +2377,6 @@ op neg ( rd : index, ra : REG_IND)
 		GPR [ rd ] = ~ra + 1;
 
         }
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_write(rd), END_REG)
 
 op neg_cr_update ( rd : index, ra : REG_IND)
    syntax = format ( "neg. r%d,%s", rd, ra.syntax )
@@ -2593,7 +2387,6 @@ op neg_cr_update ( rd : index, ra : REG_IND)
 		GPR [ rd ] = TMP_RES;
 		CR7_update(TMP_RES);
         }
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_write(rd), cr_write(7), END_REG)
 
 op neg_overflow ( rd : index, ra : REG_IND)
    syntax = format ( "nego r%d,%s", rd, ra.syntax )
@@ -2605,7 +2398,6 @@ op neg_overflow ( rd : index, ra : REG_IND)
 		GPR[rd] = TMP_RES;
 
         }
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_write(rd), xer_write, END_REG)
 
 op neg_overflow_cr_upd ( rd : index, ra : REG_IND)
    syntax = format ( "nego. r%d,%s", rd, ra.syntax )
@@ -2618,7 +2410,6 @@ op neg_overflow_cr_upd ( rd : index, ra : REG_IND)
 
 		CR7_update(TMP_RES);
         }
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_write(rd), xer_write, cr_write(7), END_REG)
 
 // Integer Compare Instructions
 
@@ -2658,7 +2449,6 @@ op cmp_imm ( crfd : card ( 3 ), l : bit, ra : REG_IND, imm : IMM16 )
         CR[(7-crfd)] < LT..SO > = TMP_BYTE & 0x0f;
 
         }
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), xer_read, cr_write(7 - crfd), END_REG)
 
 op cmp ( crfd : card ( 3 ), l : bit, ra : REG_IND, rb : REG_IND )
    syntax = format ( "cmp %d,%d,%s,%s", crfd, l, ra.syntax, rb.syntax )
@@ -2684,7 +2474,6 @@ op cmp ( crfd : card ( 3 ), l : bit, ra : REG_IND, rb : REG_IND )
         CR[(7-crfd)] < LT..SO > = TMP_BYTE & 0x0f;
 
         }
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), xer_read, cr_write(7 - crfd), END_REG)
 
 
 op cmp_log_imm ( crfd : card ( 3 ), l : bit, ra : REG_IND, imm : UIMM16 )
@@ -2713,7 +2502,6 @@ op cmp_log_imm ( crfd : card ( 3 ), l : bit, ra : REG_IND, imm : UIMM16 )
         //CR < (31-(4*crfd)-3)..(31-(4*crfd)) > = TMP_BYTE & 0x0f;
 
         }
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), xer_read, cr_write(7 - crfd), END_REG)
 
 op cmp_log ( crfd : card ( 3 ), l : bit, ra : REG_IND, rb : REG_IND )
    syntax = format ( "cmpl %d,%d,%s,%s", crfd, l, ra.syntax, rb.syntax )
@@ -2740,7 +2528,6 @@ op cmp_log ( crfd : card ( 3 ), l : bit, ra : REG_IND, rb : REG_IND )
 		CR[(7-crfd)] < LT..SO > = TMP_BYTE & 0x0f;
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), xer_read, cr_write(7 - crfd), END_REG)
 
 // Integer Logical Instructions
 op int_logical ( x : int_logical_action )
@@ -2776,7 +2563,6 @@ op or ( rs : REG_IND, ra : index, rb : REG_IND )
 		GPR [ ra ] = rs | rb;
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rb.value), gpr_read(rs.value), END_REG)
 
 op or_cr_update ( rs : REG_IND, ra : index, rb : REG_IND )
    syntax = format ( "or. r%d,%s,%s", ra, rs.syntax, rb.syntax )
@@ -2787,7 +2573,6 @@ op or_cr_update ( rs : REG_IND, ra : index, rb : REG_IND )
 		GPR [ ra ] = TMP_RES;
 		CR7_update(TMP_RES);
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rb.value), gpr_read(rs.value), cr_write(7), END_REG)
 
 op or_imm ( rs : REG_IND, ra : index, imm : UIMM16 )
    syntax = format ( "ori r%d,%s,%s", ra, rs.syntax, imm.syntax )
@@ -2800,7 +2585,6 @@ op or_imm ( rs : REG_IND, ra : index, imm : UIMM16 )
 		GPR [ ra ] = rs | TMP_WORD;
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rs.value), END_REG)
 
 op or_imm_shift ( rs : REG_IND, ra : index, imm : UIMM16 )
    syntax = format ( "oris r%d,%s,%s", ra, rs.syntax, imm.syntax )
@@ -2812,7 +2596,6 @@ op or_imm_shift ( rs : REG_IND, ra : index, imm : UIMM16 )
 		GPR [ ra ] = rs | TMP_WORD;
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rs.value), END_REG)
 
 op or_comp =   orc
              | orc_cr_update
@@ -2825,7 +2608,6 @@ op orc ( rs : REG_IND, ra : index, rb : REG_IND )
 		GPR [ ra ] = rs | ( ~rb );
 
         }
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rb.value), gpr_read(rs.value), END_REG)
 
 op orc_cr_update ( rs : REG_IND, ra : index, rb : REG_IND )
    syntax = format ( "orc. r%d,%s,%s", ra, rs.syntax, rb.syntax )
@@ -2836,7 +2618,6 @@ op orc_cr_update ( rs : REG_IND, ra : index, rb : REG_IND )
 		GPR [ ra ] = TMP_RES;
 		CR7_update(TMP_RES);
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rb.value), gpr_read(rs.value), cr_write(7), END_REG)
 
 // AND Instructions
 
@@ -2856,7 +2637,6 @@ op and ( rs : REG_IND, ra : index, rb : REG_IND )
 		GPR [ ra ] = rs & rb;
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rb.value), gpr_read(rs.value), END_REG)
 
 op and_cr_update ( rs : REG_IND, ra : index, rb : REG_IND )
    syntax = format ( "and. r%d,%s,%s", ra, rs.syntax, rb.syntax )
@@ -2868,7 +2648,6 @@ op and_cr_update ( rs : REG_IND, ra : index, rb : REG_IND )
 		CR7_update(TMP_RES);
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rb.value), gpr_read(rs.value), cr_write(7), END_REG)
 
 op and_imm ( rs : REG_IND, ra : index, imm : UIMM16 )
    syntax = format ( "andi. r%d,%s,%s", ra, rs.syntax, imm.syntax )
@@ -2881,7 +2660,6 @@ op and_imm ( rs : REG_IND, ra : index, imm : UIMM16 )
 
 		CR7_update(rs & TMP_WORD);
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rs.value), cr_write(7), END_REG)
 
 op and_imm_shift ( rs : REG_IND, ra : index, imm : UIMM16 )
    syntax = format ( "andis. r%d,%s,%s", ra, rs.syntax, imm.syntax )
@@ -2894,7 +2672,6 @@ op and_imm_shift ( rs : REG_IND, ra : index, imm : UIMM16 )
 
 		CR7_update(rs & TMP_WORD);
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rs.value), cr_write(7), END_REG)
 
 op and_comp =   andc
               | andc_cr_update
@@ -2907,7 +2684,6 @@ op andc ( rs : REG_IND, ra : index, rb : REG_IND )
 		GPR [ ra ] = rs & ( ~rb );
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rb.value), gpr_read(rs.value), END_REG)
 
 op andc_cr_update ( rs : REG_IND, ra : index, rb : REG_IND )
    syntax = format ( "andc. r%d,%s,%s", ra, rs.syntax, rb.syntax )
@@ -2919,7 +2695,6 @@ op andc_cr_update ( rs : REG_IND, ra : index, rb : REG_IND )
 		CR7_update(TMP_RES);
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rb.value), gpr_read(rs.value), cr_write(7), END_REG)
 
 // XOR Instructions
 
@@ -2938,7 +2713,6 @@ op xor ( rs : REG_IND, ra : index, rb : REG_IND )
 		GPR [ ra ] = rs ^ rb;
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rb.value), gpr_read(rs.value), END_REG)
 
 op xor_cr_update ( rs : REG_IND, ra : index, rb : REG_IND )
    syntax = format ( "xor. r%d,%s,%s", ra, rs.syntax, rb.syntax )
@@ -2950,7 +2724,6 @@ op xor_cr_update ( rs : REG_IND, ra : index, rb : REG_IND )
 		CR7_update(TMP_RES);
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rb.value), gpr_read(rs.value), cr_write(7), END_REG)
 
 op xor_imm ( rs : REG_IND, ra : index, imm : UIMM16 )
    syntax = format ( "xori r%d,%s,%s", ra, rs.syntax, imm.syntax )
@@ -2963,7 +2736,6 @@ op xor_imm ( rs : REG_IND, ra : index, imm : UIMM16 )
 		GPR [ ra ] = rs ^ TMP_WORD;
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rs.value), END_REG)
 
 op xor_imm_shift ( rs : REG_IND, ra : index, imm : UIMM16 )
    syntax = format ( "xoris r%d,%s,%s", ra, rs.syntax, imm.syntax )
@@ -2975,7 +2747,6 @@ op xor_imm_shift ( rs : REG_IND, ra : index, imm : UIMM16 )
 		GPR [ ra ] = rs ^ TMP_WORD;
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rs.value), END_REG)
 
 // NOR Instructions
 
@@ -2990,7 +2761,6 @@ op nor ( rs : REG_IND, ra : index, rb : REG_IND )
 		GPR [ ra ] = ~(  rs | rb );
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rb.value), gpr_read(rs.value), END_REG)
 
 op nor_cr_update ( rs : REG_IND, ra : index, rb : REG_IND )
    syntax = format ( "nor. r%d,%s,%s", ra, rs.syntax, rb.syntax )
@@ -3001,7 +2771,6 @@ op nor_cr_update ( rs : REG_IND, ra : index, rb : REG_IND )
 		GPR [ ra ] = TMP_RES;
 		CR7_update(TMP_RES);
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rb.value), gpr_read(rs.value), cr_write(7), END_REG)
 
 // NAND Instructions
 
@@ -3016,7 +2785,6 @@ op nand ( rs : REG_IND, ra : index, rb : REG_IND )
 		GPR [ ra ] = ~( rs & rb );
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rb.value), gpr_read(rs.value), END_REG)
 
 op nand_cr_update ( rs : REG_IND, ra : index, rb : REG_IND )
    syntax = format ( "nand. r%d,%s,%s", ra, rs.syntax, rb.syntax )
@@ -3028,7 +2796,6 @@ op nand_cr_update ( rs : REG_IND, ra : index, rb : REG_IND )
 		CR7_update(TMP_RES);
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rb.value), gpr_read(rs.value), cr_write(7), END_REG)
 
 // Equivalent Instructions
 
@@ -3044,7 +2811,6 @@ op eqv ( rs : REG_IND, ra : index, rb : REG_IND )
 		GPR [ ra ] = ~( rs ^ rb );
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rb.value), gpr_read(rs.value), END_REG)
 
 op eqv_cr_update ( rs : REG_IND, ra : index, rb : REG_IND )
    syntax = format ( "eqv. r%d,%s,%s", ra, rs.syntax, rb.syntax )
@@ -3057,7 +2823,6 @@ op eqv_cr_update ( rs : REG_IND, ra : index, rb : REG_IND )
 		CR7_update(TMP_RES);
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rb.value), gpr_read(rs.value), cr_write(7), END_REG)
 
 // Extended sign Instructions
 
@@ -3077,7 +2842,6 @@ op extsb ( rs : index, ra : index )
         GPR [ ra ] = TMP_SBYTE;   // sign extension
 
         }
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rs), END_REG)
 
 op extsb_cr_update ( rs : index, ra : index )
    syntax = format ( "extsb. r%d,r%d", ra, rs )
@@ -3090,7 +2854,6 @@ op extsb_cr_update ( rs : index, ra : index )
 		CR7_update(TMP_SBYTE);
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rs), cr_write(7), END_REG)
 
 op ext_sign_hword =   extsh
                     | extsh_cr_update
@@ -3105,7 +2868,6 @@ op extsh ( rs : index, ra : index )
 		GPR [ ra ] = TMP_SHWORD; // sign extension
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rs), END_REG)
 
 op extsh_cr_update ( rs : index, ra : index )
    syntax = format ( "extsh. r%d,r%d", ra, rs )
@@ -3119,7 +2881,6 @@ op extsh_cr_update ( rs : index, ra : index )
 		CR7_update(TMP_SHWORD);
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rs), cr_write(7), END_REG)
 
 // Count Leading zeros Instruction
 
@@ -3146,7 +2907,6 @@ op cntlzw ( rs : REG_IND, ra : index )
 			GPR [ ra ] = 32;
 		endif;
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rs.value), END_REG)
 
 op cntlzw_cr_update ( rs : REG_IND, ra : index )
    syntax = format ( "cntlzw. r%d, %s", ra, rs.syntax )
@@ -3171,7 +2931,6 @@ op cntlzw_cr_update ( rs : REG_IND, ra : index )
 			TMP_RES = 32;
 		endif;
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rs.value), cr_write(7), END_REG)
 
 
 // Integer Rotate and shift Instructions
@@ -3210,7 +2969,6 @@ op rlwinm ( rs : REG_IND, ra : index, sh : index, mb : index, me : index )
 		GPR [ ra ] = ( ( rs <<< sh ) & TMP_WORD );
 
         }
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rs.value), END_REG)
 
 op rlwinm_cr_update ( rs : REG_IND, ra : index, sh : index, mb : index, me : index )
    syntax = format ( "rlwinm. r%d,%s,%d,%d,%d", ra, rs.syntax, sh, mb, me )
@@ -3230,7 +2988,6 @@ op rlwinm_cr_update ( rs : REG_IND, ra : index, sh : index, mb : index, me : ind
 		CR7_update(TMP_RES);
 
         }
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rs.value), cr_write(7), END_REG)
 
 op rot_lw_and_mask =   rlwnm
                      | rlwnm_cr_update
@@ -3251,7 +3008,6 @@ op rlwnm ( rs : REG_IND, ra : index, rb : index, mb : index, me : index )
 		GPR [ ra ] = ( ( rs <<< coerce ( card ( 5 ), GPR [ rb ] < 4..0 > ) ) & TMP_WORD );
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rb), gpr_read(rs.value), END_REG)
 
 op rlwnm_cr_update ( rs : REG_IND, ra : index, rb : index, mb : index, me : index )
    syntax = format ( "rlwnm. r%d,%s,r%d,%d,%d", ra, rs.syntax, rb, mb, me )
@@ -3271,7 +3027,6 @@ op rlwnm_cr_update ( rs : REG_IND, ra : index, rb : index, mb : index, me : inde
 		CR7_update(TMP_RES);
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rb), gpr_read(rs.value), cr_write(7), END_REG)
 
 op rot_lw_imm_mask_ins =   rlwimi
                          | rlwimi_cr_update
@@ -3292,7 +3047,6 @@ op rlwimi ( rs : REG_IND, ra : index, sh : index, mb : index, me : index )
 		GPR [ ra ] = ( ( rs <<< sh ) & TMP_WORD ) | ( GPR [ ra ] & ~TMP_WORD );
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(ra), gpr_read(rs.value), END_REG)
 
 op rlwimi_cr_update ( rs : REG_IND, ra : index, sh : index, mb : index, me : index )
    syntax = format ( "rlwimi. r%d,%s,%d,%d,%d", ra, rs.syntax, sh, mb, me )
@@ -3312,7 +3066,6 @@ op rlwimi_cr_update ( rs : REG_IND, ra : index, sh : index, mb : index, me : ind
 		CR7_update(TMP_RES);
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(ra), gpr_read(rs.value), cr_write(7), END_REG)
 
 // Shift Instructions
 
@@ -3336,7 +3089,6 @@ op slw ( rs : REG_IND, ra : index, rb : REG_IND )
 		endif;
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rb.value), gpr_read(rs.value), END_REG)
 
 op slw_cr_update ( rs : REG_IND, ra : index, rb : REG_IND )
    syntax = format ( "slw. r%d,%s,%s", ra, rs.syntax, rb.syntax )
@@ -3353,7 +3105,6 @@ op slw_cr_update ( rs : REG_IND, ra : index, rb : REG_IND )
 		CR7_update(TMP_RES);
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rb.value), gpr_read(rs.value), cr_write(7), END_REG)
 
 op shift_right_word =   srw
                       | srw_cr_update
@@ -3373,7 +3124,6 @@ op srw ( rs : REG_IND, ra : index, rb : REG_IND )
 		endif;
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rb.value), gpr_read(rs.value), END_REG)
 
 op srw_cr_update ( rs : REG_IND, ra : index, rb : REG_IND )
    syntax = format ( "srw. r%d,%s,%s", ra, rs.syntax, rb.syntax )
@@ -3392,7 +3142,6 @@ op srw_cr_update ( rs : REG_IND, ra : index, rb : REG_IND )
 		CR7_update(TMP_RES);
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rb.value), gpr_read(rs.value), cr_write(7), END_REG)
 
 op shift_right_alg_wimm =   srawi
                           | srawi_cr_update
@@ -3422,7 +3171,6 @@ op srawi ( rs : REG_IND, ra : index, sh : index )
 		endif;
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rs.value), xer_write, END_REG)
 
 op srawi_cr_update ( rs : REG_IND, ra : index, sh : index )
    syntax = format ( "srawi. r%d,%s,%d", ra, rs.syntax, sh )
@@ -3451,7 +3199,6 @@ op srawi_cr_update ( rs : REG_IND, ra : index, sh : index )
 		CR7_update(TMP_RES);
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rs.value), xer_write, cr_write(7), END_REG)
 
 op shift_right_alg_w =   sraw
                        | sraw_cr_update
@@ -3478,7 +3225,6 @@ op sraw ( rs : REG_IND, ra : index, rb : REG_IND )
 		endif;
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rb.value), gpr_read(rs.value), xer_write, END_REG)
 
 op sraw_cr_update ( rs : REG_IND, ra : index, rb : REG_IND )
    syntax = format ( "sraw. r%d,%s,%s", ra, rs.syntax, rb.syntax )
@@ -3505,7 +3251,6 @@ op sraw_cr_update ( rs : REG_IND, ra : index, rb : REG_IND )
 		CR7_update(TMP_RES);
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(ra), gpr_read(rb.value), gpr_read(rs.value), xer_write, cr_write(7), END_REG)
 
 
 // Flow control Instructions
@@ -3547,7 +3292,6 @@ op cr_and ( crbd : index, crba : index, crbb : index)
 		CR_BIT(crbd) = CR_BIT(crba) & CR_BIT(crbb);
 
             }
-   otawa_used_regs = "USED_REGS"(cr_read(CR_REG(crba)), cr_read(CR_REG(crbb)), cr_write(CR_REG(crbd)), END_REG)
 
 op cr_or ( crbd : index, crba : index, crbb : index)
    syntax = format ( "cror crb%d,crb%d,crb%d", crbd, crba, crbb )
@@ -3557,7 +3301,6 @@ op cr_or ( crbd : index, crba : index, crbb : index)
 		CR_BIT(crbd) = CR_BIT(crba) | CR_BIT(crbb);
 
             }
-   otawa_used_regs = "USED_REGS"(cr_read(CR_REG(crba)), cr_read(CR_REG(crbb)), cr_write(CR_REG(crbd)), END_REG)
 
 op cr_xor ( crbd : index, crba : index, crbb : index)
    syntax = format ( "crxor crb%d,crb%d,crb%d", crbd, crba, crbb )
@@ -3566,7 +3309,6 @@ op cr_xor ( crbd : index, crba : index, crbb : index)
 		CR_BIT(crbd) = CR_BIT(crba) ^ CR_BIT(crbb);
 
             }
-   otawa_used_regs = "USED_REGS"(cr_read(CR_REG(crba)), cr_read(CR_REG(crbb)), cr_write(CR_REG(crbd)), END_REG)
 
 op cr_nand ( crbd : index, crba : index, crbb : index)
    syntax = format ( "crnand crb%d,crb%d,crb%d", crbd, crba, crbb )
@@ -3574,7 +3316,6 @@ op cr_nand ( crbd : index, crba : index, crbb : index)
    action = {
 		CR_BIT(crbd) = ~(CR_BIT(crba) & CR_BIT(crbb));
             }
-   otawa_used_regs = "USED_REGS"(cr_read(CR_REG(crba)), cr_read(CR_REG(crbb)), cr_write(CR_REG(crbd)), END_REG)
 
 op cr_nor ( crbd : index, crba : index, crbb : index)
    syntax = format ( "crnor crb%d,crb%d,crb%d", crbd, crba, crbb )
@@ -3582,7 +3323,6 @@ op cr_nor ( crbd : index, crba : index, crbb : index)
    action = {
 		CR_BIT(crbd) = ~(CR_BIT(crba) | CR_BIT(crbb));
              }
-   otawa_used_regs = "USED_REGS"(cr_read(CR_REG(crba)), cr_read(CR_REG(crbb)), cr_write(CR_REG(crbd)), END_REG)
 
 op cr_eqv ( crbd : index, crba : index, crbb : index)
    syntax = format ( "creqv crb%d,crb%d,crb%d", crbd, crba, crbb )
@@ -3590,7 +3330,6 @@ op cr_eqv ( crbd : index, crba : index, crbb : index)
    action = {
 		CR_BIT(crbd) = CR_BIT(crba) ^ ~CR_BIT(crbb);
             }
-   otawa_used_regs = "USED_REGS"(cr_read(CR_REG(crba)), cr_read(CR_REG(crbb)), cr_write(CR_REG(crbd)), END_REG)
 
 op cr_and_comp ( crbd : index, crba : index, crbb : index)
    syntax = format ( "crandc crb%d,crb%d,crb%d", crbd, crba, crbb )
@@ -3598,7 +3337,6 @@ op cr_and_comp ( crbd : index, crba : index, crbb : index)
    action = {
 		CR_BIT(crbd) = CR_BIT(crba) & ~CR_BIT(crbb);
             }
-   otawa_used_regs = "USED_REGS"(cr_read(CR_REG(crba)), cr_read(CR_REG(crbb)), cr_write(CR_REG(crbd)), END_REG)
 
 op cr_or_comp ( crbd : index, crba : index, crbb : index)
    syntax = format ( "crorc crb%d,crb%d,crb%d", crbd, crba, crbb )
@@ -3606,7 +3344,6 @@ op cr_or_comp ( crbd : index, crba : index, crbb : index)
    action = {
 		CR_BIT(crbd) = CR_BIT(crba) | ~CR_BIT(crbb);
             }
-   otawa_used_regs = "USED_REGS"(cr_read(CR_REG(crba)), cr_read(CR_REG(crbb)), cr_write(CR_REG(crbd)), END_REG)
 
 op mov_cr_field ( crfd : card ( 3 ), crfs : card ( 3 ) )
    syntax = format ( "mcrf crf%d,crf%d", crfd, crfs )
@@ -3617,7 +3354,6 @@ op mov_cr_field ( crfd : card ( 3 ), crfs : card ( 3 ) )
                //          CR < (31-(4*crfs)-3)..(31-(4*crfs)) >;
                CR[7-crfd]=CR[7-crfs];
             }
-   otawa_used_regs = "USED_REGS"(cr_read(7-crfs), cr_write(CR_REG(7-crfd)), END_REG)
 
 op mov_to_cr_field ( rs : REG_IND, crm : card ( 8 ) )
    syntax = format ( "mtcrf %d,%s", crm, rs.syntax )
@@ -3669,12 +3405,6 @@ op mov_to_cr_field ( rs : REG_IND, crm : card ( 8 ) )
                //CR = rs & TMP_WORD;
 
              }
-   otawa_used_regs = "USED_REGS"(gpr_read(rs.value),
-   	if crm<0..0> then cr_write(0) else NO_REG endif, if crm<1..1> then cr_write(1) else NO_REG endif,
-   	if crm<2..2> then cr_write(2) else NO_REG endif, if crm<3..3> then cr_write(3) else NO_REG endif,
-   	if crm<4..4> then cr_write(4) else NO_REG endif, if crm<5..5> then cr_write(5) else NO_REG endif,
-   	if crm<6..6> then cr_write(6) else NO_REG endif, if crm<7..7> then cr_write(7) else NO_REG endif,
-   	END_REG)
 
 op mov_to_cr_xer ( crfd : card ( 3 ) )
    syntax = format ( "mcrxr crf%d", crfd )
@@ -3684,7 +3414,6 @@ op mov_to_cr_xer ( crfd : card ( 3 ) )
                CR[7-crfd]=XER <31..28>;
                XER <31..28> = 0;
             }
-   otawa_used_regs = "USED_REGS"(cr_write(7-crfd), xer_read, xer_write, END_REG)
 
 // 2.2.4 Processor Control Instructions
 
@@ -3712,7 +3441,6 @@ op mov_from_cr ( rd : index )
               GPR[rd]<4*6+3..4*6>=CR[6];
               GPR[rd]<4*7+3..4*7>=CR[7];
             }
-   otawa_used_regs = "USED_REGS"(gpr_write(rd), cr_read_range(0, 7), END_REG)
 
 // useful macros for SPR
 macro spr_code(x) = (x<4..0>::x<8..5>)
@@ -3747,13 +3475,6 @@ op mov_to_spr ( rs : index, spr : card ( 9 ) )
 			default : "print" ( "mtspr: rs error." );
 		};
              }
-   otawa_used_regs = "USED_REGS"(gpr_read(rs),
-	      switch ( spr ) {
-		      case 1 << 5 : xer_write
-		      case 8 << 5: lr_write
-		      case 9 << 5: ctr_write
-		      default : NO_REG },
-		END_REG)
 
 op mov_from_spr ( rd : index, spr : card ( 9 ) )
    syntax = format("mfspr r%d,%s", rd, spr_text(spr))
@@ -3776,13 +3497,6 @@ op mov_from_spr ( rd : index, spr : card ( 9 ) )
 			default : "print" ( "mfspr: rd error." );
 		};
 	}
-   otawa_used_regs = "USED_REGS"(gpr_write(rd),
-	      switch ( spr ) {
-		      case 1 << 5 : xer_read
-		      case 8 << 5: lr_read
-		      case 9 << 5: ctr_read
-		      default : NO_REG },
-		END_REG)
 
 
 
@@ -3809,7 +3523,6 @@ op lwarx ( rd: index, ra: REG_IND_ZERO, rb: REG_IND )
 		GPR [ rd ] = M32 [ TMP_EA ];
 
 		}
-   otawa_used_regs = "USED_REGS"(gpr_write(rd), rzero(ra), gpr_read(rb.value), END_REG)
 
 op stwcx ( rs: REG_IND, ra: REG_IND_ZERO, rb: REG_IND )
 	syntax = format ( "stwcx. %s,%s,%s", rs.syntax, ra.syntax, rb.syntax )
@@ -3826,14 +3539,12 @@ op stwcx ( rs: REG_IND, ra: REG_IND_ZERO, rb: REG_IND )
 			CR[7]<SO..SO> = XER<SO_XER..SO_XER>;
 		endif;
 		}
-   otawa_used_regs = "USED_REGS"(rzero(ra), gpr_read(rb.value), gpr_read(rs.value),  cr_write(7), xer_read, END_REG)
 
 op sync ( )
 	syntax = "sync"
 	image  = "01111100000000000000010010101100"
 	action = {
 		}
-	otawa_used_regs = "USED_REGS"(END_REG)
 
 // 2.2.6 Trap Instructions
 // TW, TWI
@@ -3870,7 +3581,6 @@ op tw ( to: card(5), ra: REG_IND, rb: REG_IND )
 			// TRAP how do we make a trap???
 		endif;
 		}
-	otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), END_REG)
 
 op twi ( to: card(5), ra: REG_IND, b: SIMM16 )
 	syntax = format ( "twi %d,%s,%s", to, ra.syntax, b.syntax )
@@ -3897,6 +3607,5 @@ op twi ( to: card(5), ra: REG_IND, b: SIMM16 )
 			// TRAP how do we make a trap???
 		endif;
 		}
-	otawa_used_regs = "USED_REGS"(gpr_read(ra.value), END_REG)
 
 // End PowerPc755 Description

@@ -72,7 +72,6 @@ op vea_dcbi ( ra: REG_IND_ZERO, rb: REG_IND )
 		TMP_EA = ra + rb;
 		"InvalidateDataCacheBlock"(TMP_EA);
 	}
-   otawa_used_regs = "USED_REGS"(gpr_read(ra.value), gpr_read(rb.value), END_REG)
 
 op vea_dcbst ( ra: REG_IND_ZERO, rb: REG_IND )
 	syntax = format ( "dcbst %s,%s", ra.syntax, rb.syntax )
