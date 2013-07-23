@@ -181,6 +181,7 @@ op essp_fp_instr ( x: essp_fp_instr_action )
 op essp_fp_instr_action =   efsarithmetic
                       | efscompare
                       | efsconvert
+                      /* | efstst */
                       
 op efsarithmetic =   efsadd
                     | efssub
@@ -415,7 +416,7 @@ op efscmpeq ( crfd : card ( 3 ), fra : index, frb : index )
 		
 op efscmplt ( crfd : card ( 3 ), fra : index, frb : index )
    syntax = format ( "efscmplt crf%d,fr%d,fr%d", crfd, fra, frb )
-   image  = format ( "000100%3b00%5b%5b01011001101", crfd, fra, frb )
+   image  = format ( "000100 %3b 00 %5b %5b 010 1100 1101", crfd, fra, frb )
    action = {
 		TMP_FLOAT32_A<31..0> = GPR [ fra ];
         TMP_FLOAT32_B<31..0> = GPR [ frb ];
@@ -479,3 +480,11 @@ op efscfui ( frd : index, frb : index )
 		endif;
 	}
 	otawa_kind = EFPRC                          
+
+
+/*op efstst = efststlt
+
+op efststlt(crd: card(3), ra: index, rb: index)
+	syntax = format("efststlt cr%d, fr%d, fr%d", crd, ra, rb)
+	image = format("0001000 %3b 00 %5b %5b 01011011101
+*/

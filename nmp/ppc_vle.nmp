@@ -64,7 +64,11 @@ op vle32(x: vle32_all)
 		x.action;
 	}
 
-op vle32_all = vle32_list | vle_normal | vle_book_e
+op vle32_all =
+	  vle32_list
+	| vle_normal
+	| vle_book_e
+	| essp_fp_instr
 
 op vle_normal =
 	  add							// add, add., addo, addo.
