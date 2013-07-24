@@ -31,7 +31,7 @@ op normal_isa(x: instrs32)
 op instrs32  =    uisa_instr
                 | vea_instr
                 | oea_instr
-                | essp_fp_instr
+//                | essp_fp_instr
 
 
 // VLE instruction set
@@ -68,7 +68,7 @@ op vle32_all =
 	  vle32_list
 	| vle_normal
 	| vle_book_e
-	| essp_fp_instr
+//	| essp_fp_instr
 
 op vle_normal =
 	  add							// add, add., addo, addo.
