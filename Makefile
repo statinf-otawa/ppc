@@ -44,9 +44,6 @@ SYSCALL=syscall-embedded
 ENV=void_env
 endif
 
-CFLAGS = \
-	-fno-jump-table
-
 GFLAGS = \
 	-m mem:$(MEMORY) \
 	-m loader:$(LOADER) \
