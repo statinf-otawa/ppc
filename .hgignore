@@ -1,0 +1,14 @@
+.cproject
+.preferences.xml
+.project
+.settings
+
+config.mk
+ppc.dis
+ppc.irg
+ppc.nml
+
+disasm/
+include/
+src/
+sim/
