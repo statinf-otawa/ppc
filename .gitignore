@@ -1,0 +1,8 @@
+disasm/
+include/
+sim/
+src/
+ppc.irg
+ppc.nml
+config.mk
+
